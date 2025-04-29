@@ -968,13 +968,17 @@
         <div class="filter-section">
             <h3>品牌/廠牌</h3>
             <div class="filter-options" id="brandFilters">
-                <div class="filter-chip" data-brand="三菱">三菱</div>
-                <div class="filter-chip" data-brand="日野">日野</div>
-                <div class="filter-chip" data-brand="五十鈴">五十鈴</div>
-                <div class="filter-chip" data-brand="賓士">賓士</div>
-                <div class="filter-chip" data-brand="福斯">福斯</div>
-                <div class="filter-chip" data-brand="斯堪尼亞">斯堪尼亞</div>
-                <div class="filter-chip" data-brand="沃爾沃">沃爾沃</div>
+                <div class="filter-chip" data-brand="MAN 德曼">MAN 德曼</div>
+                <div class="filter-chip" data-brand="SCANIA 斯堪尼亞">SCANIA 斯堪尼亞</div>
+                <div class="filter-chip" data-brand="VOLVO 富豪">VOLVO 富豪</div>
+                <div class="filter-chip" data-brand="BENZ 賓士">BENZ 賓士</div>
+                <div class="filter-chip" data-brand="FUSO 三菱">FUSO 三菱</div>
+                <div class="filter-chip" data-brand="ISUZU 五十鈴">ISUZU 五十鈴</div>
+                <div class="filter-chip" data-brand="HINO 日野">HINO 日野</div>
+                <div class="filter-chip" data-brand="DAF 達富">DAF 達富</div>
+                <div class="filter-chip" data-brand="IVECO 威凱">IVECO 威凱</div>
+                <div class="filter-chip" data-brand="SITRAK 賽德卡">SITRAK 賽德卡</div>
+                <div class="filter-chip" data-brand="其他">其他</div>
             </div>
         </div>
 
@@ -1113,21 +1117,27 @@
             
             <div class="form-group">
                 <label for="vehicleYear" class="form-required">年份</label>
-                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022" required min="1970" max="2030">
-                <div class="form-error" id="vehicleYearError">請輸入有效的年份</div>
+                <select id="vehicleYear" class="form-control" required>
+                    <option value="">請選擇年份</option>
+                    <!-- 此處的選項將由JavaScript動態生成 -->
+                </select>
+                <div class="form-error" id="vehicleYearError">請選擇年份</div>
             </div>
             
             <div class="form-group">
                 <label for="vehicleBrand" class="form-required">廠牌</label>
                 <select id="vehicleBrand" class="form-control" required>
                     <option value="">請選擇廠牌</option>
-                    <option value="三菱">三菱</option>
-                    <option value="日野">日野</option>
-                    <option value="五十鈴">五十鈴</option>
-                    <option value="賓士">賓士</option>
-                    <option value="福斯">福斯</option>
-                    <option value="斯堪尼亞">斯堪尼亞</option>
-                    <option value="沃爾沃">沃爾沃</option>
+                    <option value="MAN 德曼">MAN 德曼</option>
+                    <option value="SCANIA 斯堪尼亞">SCANIA 斯堪尼亞</option>
+                    <option value="VOLVO 富豪">VOLVO 富豪</option>
+                    <option value="BENZ 賓士">BENZ 賓士</option>
+                    <option value="FUSO 三菱">FUSO 三菱</option>
+                    <option value="ISUZU 五十鈴">ISUZU 五十鈴</option>
+                    <option value="HINO 日野">HINO 日野</option>
+                    <option value="DAF 達富">DAF 達富</option>
+                    <option value="IVECO 威凱">IVECO 威凱</option>
+                    <option value="SITRAK 賽德卡">SITRAK 賽德卡</option>
                     <option value="其他">其他</option>
                 </select>
                 <div class="form-error" id="vehicleBrandError">請選擇廠牌</div>
@@ -1457,6 +1467,9 @@
             
             // 載入模擬數據
             loadMockData();
+
+            // 生成年份下拉選單選項
+            generateYearOptions();
             
             // 渲染車輛列表
             renderVehicleList();
@@ -1474,7 +1487,7 @@
                 id: '1',
                 title: '2021 三菱 FUSO 10.5噸 棉被式冷凍車',
                 price: 3880000,
-                brand: '三菱',
+                brand: 'FUSO 三菱',
                 model: 'FUSO',
                 year: 2021,
                 weight: 10.5,
@@ -1814,6 +1827,7 @@
                 case 'add':
                     document.getElementById('vehicleForm').style.display = 'block';
                     document.querySelector('.header h1').textContent = '新增車輛';
+                    generateYearOptions(); // 添加這行
                     break;
                 case 'auth':
                     document.getElementById('authContainer').style.display = 'flex';
@@ -2033,6 +2047,26 @@
             });
         }
 
+        // 生成年份下拉選單選項
+        function generateYearOptions() {
+            const yearSelect = document.getElementById('vehicleYear');
+            if (!yearSelect) return;
+            
+            // 清空現有選項
+            yearSelect.innerHTML = '<option value="">請選擇年份</option>';
+            
+            // 獲取當前年份
+            const currentYear = new Date().getFullYear();
+            
+            // 生成從當前年份到25年前的選項
+            for (let year = currentYear; year >= currentYear - 25; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year + '年';
+                yearSelect.appendChild(option);
+            }
+        }
+
         // 應用篩選條件
         function applyFilters() {
             // 收集價格範圍
@@ -2242,6 +2276,7 @@
             // 顯示保存中提示
             showToast('儲存中，請稍候...');
             
+            // 在saveVehicle函數中，修改這部分代碼
             if (saveMode === 'edit' && vehicleId) {
                 // 編輯現有車輛
                 const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
@@ -2258,8 +2293,8 @@
                         weight,
                         length,
                         mileage,
-                        engine,
-                        condition,
+                        horsepower, // 替換掉 engine
+                        category,   // 添加 category
                         description,
                         features,
                         status,
@@ -2275,7 +2310,7 @@
             } else {
                 // 新增車輛
                 const newVehicle = {
-                    id: 'v' + new Date().getTime(), // 使用時間戳作為ID，確保唯一性
+                    id: 'v' + new Date().getTime(),
                     title,
                     price,
                     brand,
@@ -2284,8 +2319,8 @@
                     weight,
                     length,
                     mileage,
-                    engine,
-                    condition,
+                    horsepower, // 替換掉 engine
+                    category,   // 添加 category
                     description,
                     features,
                     status,
@@ -2302,7 +2337,7 @@
                 };
                 
                 // 添加到模擬數據
-                mockVehicles.unshift(newVehicle); // 添加到列表頂部
+                mockVehicles.unshift(newVehicle);
                 showToast('車輛資訊已儲存');
             }
             
