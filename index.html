@@ -439,6 +439,60 @@
             min-height: 100px;
         }
 
+        .form-required::after {
+            content: "*";
+            color: var(--accent-color);
+            margin-left: 3px;
+        }
+
+        .form-control.invalid {
+            border-color: var(--accent-color);
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+
+        .form-error {
+            color: var(--accent-color);
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-error.visible {
+            display: block;
+        }
+
+        .form-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .form-section-indicator {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .form-progress {
+            height: 4px;
+            background-color: var(--background-color);
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .form-progress-bar {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .form-tip {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
         .photo-upload {
             border: 2px dashed var(--border-color);
             padding: 20px;
@@ -1045,20 +1099,27 @@
         <h2>新增車輛資訊</h2>
         
         <div class="form-section">
-            <h3>基本資訊</h3>
-            <div class="form-group">
-                <label for="vehicleTitle">車輛標題</label>
-                <input type="text" id="vehicleTitle" class="form-control" placeholder="例：2022 三菱 FUSO 10噸 冷凍車">
+            <div class="form-section-title">
+                <h3>基本資訊</h3>
+                <span class="form-section-indicator">所有欄位必填</span>
             </div>
             
             <div class="form-group">
-                <label for="vehiclePrice">售價 (台幣)</label>
-                <input type="number" id="vehiclePrice" class="form-control" placeholder="請輸入完整金額，例：3500000">
+                <label for="vehicleTitle" class="form-required">車輛標題</label>
+                <input type="text" id="vehicleTitle" class="form-control" placeholder="例：2022 三菱 FUSO 10噸 冷凍車" required>
+                <div class="form-error" id="vehicleTitleError">請輸入車輛標題</div>
+                <div class="form-tip">建議包含年份、品牌、型號和特性</div>
             </div>
             
             <div class="form-group">
-                <label for="vehicleBrand">廠牌</label>
-                <select id="vehicleBrand" class="form-control">
+                <label for="vehiclePrice" class="form-required">售價 (台幣)</label>
+                <input type="number" id="vehiclePrice" class="form-control" placeholder="請輸入完整金額，例：3500000" required>
+                <div class="form-error" id="vehiclePriceError">請輸入有效的售價</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleBrand" class="form-required">廠牌</label>
+                <select id="vehicleBrand" class="form-control" required>
                     <option value="">請選擇廠牌</option>
                     <option value="三菱">三菱</option>
                     <option value="日野">日野</option>
@@ -1069,21 +1130,31 @@
                     <option value="沃爾沃">沃爾沃</option>
                     <option value="其他">其他</option>
                 </select>
+                <div class="form-error" id="vehicleBrandError">請選擇廠牌</div>
             </div>
             
             <div class="form-group">
-                <label for="vehicleModel">車型</label>
-                <input type="text" id="vehicleModel" class="form-control" placeholder="例：FUSO、Volvo FH16、Hino 500">
+                <label for="vehicleModel" class="form-required">車型</label>
+                <input type="text" id="vehicleModel" class="form-control" placeholder="例：FUSO、Volvo FH16、Hino 500" required>
+                <div class="form-error" id="vehicleModelError">請輸入車型</div>
             </div>
             
             <div class="form-group">
-                <label for="vehicleYear">出廠年份</label>
-                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022">
+                <label for="vehicleYear" class="form-required">出廠年份</label>
+                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022" required min="1970" max="2030">
+                <div class="form-error" id="vehicleYearError">請輸入有效的出廠年份</div>
             </div>
         </div>
         
         <div class="form-section">
-            <h3>車輛規格</h3>
+            <div class="form-section-title">
+                <h3>車輛規格</h3>
+                <span class="form-section-indicator">選填</span>
+            </div>
+            
+            <div class="form-progress">
+                <div class="form-progress-bar" id="formProgressBar"></div>
+            </div>
             <div class="form-group">
                 <label for="vehicleWeight">載重噸數</label>
                 <input type="number" id="vehicleWeight" class="form-control" step="0.1" placeholder="例：10.5">
@@ -1331,6 +1402,9 @@
             sortBy: 'newest'
         };
 
+        // 表單驗證狀態
+        let formValidationEnabled = false;
+
         let uploadedPhotos = []; // 存儲已上傳的照片
 
         // 照片壓縮配置
@@ -1563,12 +1637,26 @@
         // 渲染車輛列表
         function renderVehicleList(filteredVehicles = null) {
             const vehicleList = document.getElementById('vehicleList');
+            if (!vehicleList) return; // 如果元素不存在，直接返回
+            
             vehicleList.innerHTML = '';
             
             const vehicles = filteredVehicles || mockVehicles;
             
             if (vehicles.length === 0) {
-                vehicleList.innerHTML = '<div class="no-results">沒有符合條件的車輛</div>';
+                vehicleList.innerHTML = `
+                    <div class="no-results">
+                        <p>沒有符合條件的車輛</p>
+                        <button class="btn btn-primary" id="addFirstVehicle">新增第一輛車</button>
+                    </div>
+                `;
+                
+                // 添加新增按鈕事件
+                const addFirstVehicleBtn = document.getElementById('addFirstVehicle');
+                if (addFirstVehicleBtn) {
+                    addFirstVehicleBtn.addEventListener('click', () => switchPage('add'));
+                }
+                
                 return;
             }
             
@@ -1819,22 +1907,15 @@
             
             // 新增/取消車輛表單
             document.getElementById('cancelForm').addEventListener('click', () => {
+                // 確認是否取消
+                if (formValidationEnabled) {
+                    if (!confirm('確定要取消？已填寫的資料將不會保存。')) {
+                        return;
+                    }
+                }
+                
                 // 重置表單
-                document.getElementById('vehicleForm').reset();
-                document.getElementById('photoPreviewArea').innerHTML = '';
-                
-                // 清理照片資源
-                uploadedPhotos.forEach(photo => {
-                    URL.revokeObjectURL(photo.url);
-                });
-                uploadedPhotos = [];
-                
-                // 重置保存按鈕的狀態
-                document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
-                document.getElementById('saveVehicle').removeAttribute('data-id');
-                
-                // 更新頁面標題回新增模式
-                document.querySelector('#vehicleForm h2').textContent = '新增車輛資訊';
+                resetVehicleForm();
                 
                 // 返回列表頁
                 switchPage('list');
@@ -1848,6 +1929,27 @@
             });
 
             document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
+
+            // 表單欄位輸入事件
+            const formFields = document.querySelectorAll('#vehicleForm .form-control');
+            formFields.forEach(field => {
+                field.addEventListener('input', () => {
+                    // 只有在驗證已啟用時才觸發驗證
+                    if (formValidationEnabled) {
+                        validateField(field);
+                    }
+                    
+                    // 更新表單進度
+                    updateFormProgress();
+                });
+                
+                // 離開欄位時進行驗證
+                field.addEventListener('blur', () => {
+                    if (field.hasAttribute('required')) {
+                        validateField(field);
+                    }
+                });
+            });
 
             // 添加拖放上傳支持
             const photoUploadArea = document.getElementById('photoUpload');
@@ -2068,37 +2170,38 @@
 
         // 儲存車輛資訊
         function saveVehicle() {
-            // 獲取表單數據
-            const title = document.getElementById('vehicleTitle').value;
-            if (!title) {
-                showToast('請填寫車輛標題');
+            // 啟用表單驗證
+            formValidationEnabled = true;
+            
+            // 驗證表單
+            if (!validateForm()) {
+                showToast('請填寫所有必填欄位');
+                
+                // 將頁面滾動到第一個錯誤欄位
+                const firstInvalidField = document.querySelector('.form-control.invalid');
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
                 return;
             }
             
-            const price = document.getElementById('vehiclePrice').value;
-            if (!price) {
-                showToast('請填寫售價');
-                return;
-            }
-            
-            // 獲取其他必要數據
+            // 獲取必要數據
+            const title = document.getElementById('vehicleTitle').value.trim();
+            const price = parseFloat(document.getElementById('vehiclePrice').value);
             const brand = document.getElementById('vehicleBrand').value;
-            const model = document.getElementById('vehicleModel').value;
-            const year = document.getElementById('vehicleYear').value;
-            const weight = document.getElementById('vehicleWeight').value;
-            const length = document.getElementById('vehicleLength').value;
-            
-            if (!brand || !model || !year || !weight || !length) {
-                showToast('請填寫所有必要欄位');
-                return;
-            }
+            const model = document.getElementById('vehicleModel').value.trim();
+            const year = parseInt(document.getElementById('vehicleYear').value);
             
             // 獲取其他數據
-            const mileage = document.getElementById('vehicleMileage').value || 0;
-            const engine = document.getElementById('vehicleEngine').value || '';
+            const weight = document.getElementById('vehicleWeight').value ? parseFloat(document.getElementById('vehicleWeight').value) : null;
+            const length = document.getElementById('vehicleLength').value ? parseFloat(document.getElementById('vehicleLength').value) : null;
+            const mileage = document.getElementById('vehicleMileage').value ? parseInt(document.getElementById('vehicleMileage').value) : 0;
+            const engine = document.getElementById('vehicleEngine').value.trim() || '';
             const condition = document.getElementById('vehicleCondition').value || 'B';
-            const description = document.getElementById('vehicleDescription').value || '';
-            const featuresText = document.getElementById('vehicleFeatures').value || '';
+            const description = document.getElementById('vehicleDescription').value.trim() || '';
+            const featuresText = document.getElementById('vehicleFeatures').value.trim() || '';
             const status = document.getElementById('vehicleStatus').value || 'available';
             
             // 將特殊配備文本轉換為陣列
@@ -2107,9 +2210,17 @@
                 .map(line => line.trim())
                 .filter(line => line.length > 0);
             
-            // 獲取照片預覽區域中的照片URLs
-            const photoElements = document.querySelectorAll('#photoPreviewArea .upload-preview img');
-            const photos = Array.from(photoElements).map(img => img.src);
+            // 獲取照片資訊
+            let photos = [];
+            
+            // 如果有通過上傳功能添加的照片，使用這些照片
+            if (uploadedPhotos.length > 0) {
+                photos = uploadedPhotos.map(photo => photo.url);
+            } else {
+                // 作為備份，如果有通過其他方式添加的照片，獲取它們
+                const photoElements = document.querySelectorAll('#photoPreviewArea .upload-preview img');
+                photos = Array.from(photoElements).map(img => img.src);
+            }
             
             // 如果沒有照片，使用佔位圖
             if (photos.length === 0) {
@@ -2120,6 +2231,9 @@
             const saveMode = document.getElementById('saveVehicle').getAttribute('data-mode');
             const vehicleId = document.getElementById('saveVehicle').getAttribute('data-id');
             
+            // 顯示保存中提示
+            showToast('儲存中，請稍候...');
+            
             if (saveMode === 'edit' && vehicleId) {
                 // 編輯現有車輛
                 const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
@@ -2129,13 +2243,13 @@
                     mockVehicles[vehicleIndex] = {
                         ...mockVehicles[vehicleIndex],
                         title,
-                        price: parseFloat(price),
+                        price,
                         brand,
                         model,
-                        year: parseInt(year),
-                        weight: parseFloat(weight),
-                        length: parseFloat(length),
-                        mileage: parseInt(mileage),
+                        year,
+                        weight,
+                        length,
+                        mileage,
                         engine,
                         condition,
                         description,
@@ -2153,15 +2267,15 @@
             } else {
                 // 新增車輛
                 const newVehicle = {
-                    id: 'v' + (mockVehicles.length + 1), // 簡單生成ID
+                    id: 'v' + new Date().getTime(), // 使用時間戳作為ID，確保唯一性
                     title,
-                    price: parseFloat(price),
+                    price,
                     brand,
                     model,
-                    year: parseInt(year),
-                    weight: parseFloat(weight),
-                    length: parseFloat(length),
-                    mileage: parseInt(mileage),
+                    year,
+                    weight,
+                    length,
+                    mileage,
                     engine,
                     condition,
                     description,
@@ -2180,33 +2294,135 @@
                 };
                 
                 // 添加到模擬數據
-                mockVehicles.push(newVehicle);
+                mockVehicles.unshift(newVehicle); // 添加到列表頂部
                 showToast('車輛資訊已儲存');
             }
             
             // 重置表單
-            document.getElementById('vehicleForm').reset();
-            document.getElementById('photoPreviewArea').innerHTML = '';
-            
-            // 重置保存按鈕的狀態
-            document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
-            document.getElementById('saveVehicle').removeAttribute('data-id');
-            
-            // 更新頁面標題回新增模式
-            document.querySelector('#vehicleForm h2').textContent = '新增車輛資訊';
+            resetVehicleForm();
             
             // 重新渲染車輛列表和更新個人資料頁
             renderVehicleList();
             checkAuthState();
+            
+            // 回到列表頁
+            switchPage('list');
+        }
 
-            // 清理資源
+        // 驗證表單欄位
+        function validateField(field) {
+            // 檢查欄位是否存在
+            if (!field) return false;
+            
+            // 獲取欄位值
+            const value = field.value.trim();
+            const fieldId = field.id;
+            const errorElement = document.getElementById(`${fieldId}Error`);
+            
+            // 檢查必填欄位
+            if (field.hasAttribute('required') && value === '') {
+                field.classList.add('invalid');
+                if (errorElement) errorElement.classList.add('visible');
+                return false;
+            }
+            
+            // 特定欄位的額外驗證
+            switch (fieldId) {
+                case 'vehiclePrice':
+                    if (isNaN(value) || parseFloat(value) <= 0) {
+                        field.classList.add('invalid');
+                        if (errorElement) errorElement.classList.add('visible');
+                        return false;
+                    }
+                    break;
+                    
+                case 'vehicleYear':
+                    const year = parseInt(value);
+                    const currentYear = new Date().getFullYear();
+                    if (isNaN(year) || year < 1970 || year > currentYear + 5) {
+                        field.classList.add('invalid');
+                        if (errorElement) errorElement.classList.add('visible');
+                        return false;
+                    }
+                    break;
+            }
+            
+            // 驗證通過
+            field.classList.remove('invalid');
+            if (errorElement) errorElement.classList.remove('visible');
+            return true;
+        }
+
+        // 驗證整個表單
+        function validateForm() {
+            // 只有在啟用表單驗證時才執行
+            if (!formValidationEnabled) return true;
+            
+            // 要驗證的必填欄位
+            const requiredFields = [
+                document.getElementById('vehicleTitle'),
+                document.getElementById('vehiclePrice'),
+                document.getElementById('vehicleBrand'),
+                document.getElementById('vehicleModel'),
+                document.getElementById('vehicleYear')
+            ];
+            
+            // 驗證每個欄位並收集結果
+            const validationResults = requiredFields.map(field => validateField(field));
+            
+            // 檢查是否所有欄位都驗證通過
+            return validationResults.every(result => result === true);
+        }
+
+        // 更新表單進度
+        function updateFormProgress() {
+            const formFields = document.querySelectorAll('#vehicleForm .form-control');
+            const filledFields = Array.from(formFields).filter(field => field.value.trim() !== '');
+            
+            const progressPercentage = Math.round((filledFields.length / formFields.length) * 100);
+            const progressBar = document.getElementById('formProgressBar');
+            
+            if (progressBar) {
+                progressBar.style.width = `${progressPercentage}%`;
+            }
+        }
+
+        // 清除表單錯誤
+        function clearFormErrors() {
+            const invalidFields = document.querySelectorAll('.form-control.invalid');
+            const errorMessages = document.querySelectorAll('.form-error.visible');
+            
+            invalidFields.forEach(field => field.classList.remove('invalid'));
+            errorMessages.forEach(error => error.classList.remove('visible'));
+        }
+
+        // 重置表單
+        function resetVehicleForm() {
+            document.getElementById('vehicleForm').reset();
+            document.getElementById('photoPreviewArea').innerHTML = '';
+            
+            // 清理照片資源
             uploadedPhotos.forEach(photo => {
                 URL.revokeObjectURL(photo.url);
             });
             uploadedPhotos = [];
             
-            // 回到列表頁
-            switchPage('list');
+            // 重置保存按鈕的狀態
+            document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
+            document.getElementById('saveVehicle').removeAttribute('data-id');
+            
+            // 重置表單驗證狀態
+            formValidationEnabled = false;
+            clearFormErrors();
+            
+            // 重置進度條
+            const progressBar = document.getElementById('formProgressBar');
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+            
+            // 更新頁面標題回新增模式
+            document.querySelector('#vehicleForm h2').textContent = '新增車輛資訊';
         }
 
         // 處理照片上傳
@@ -2800,6 +3016,9 @@
             
             // 顯示通知
             showToast('正在編輯車輛資訊');
+
+            // 更新表單進度
+            updateFormProgress();
         }
 
         // 刪除車輛確認
