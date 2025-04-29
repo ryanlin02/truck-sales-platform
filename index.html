@@ -1167,11 +1167,16 @@
 
         // Firebase 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 實際部署時取消註解下方程式碼
-            // firebase.initializeApp(firebaseConfig);
-            // const auth = firebase.auth();
-            // const db = firebase.firestore();
-            // const storage = firebase.storage();
+            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+            const firebaseConfig = {
+                apiKey: "AIzaSyA0eb2ZRgmPGgo2aRyzwFHDvFHj5L3Rxqw",
+                authDomain: "truck-sales-platform.firebaseapp.com",
+                projectId: "truck-sales-platform",
+                storageBucket: "truck-sales-platform.firebasestorage.app",
+                messagingSenderId: "611691790674",
+                appId: "1:611691790674:web:c714c6be6091a0e49bfa8b",
+                measurementId: "G-HLXKEX6XT1"
+            };
             
             // 初始化應用程式
             initApp();
