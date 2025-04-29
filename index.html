@@ -1112,9 +1112,9 @@
             </div>
             
             <div class="form-group">
-                <label for="vehiclePrice" class="form-required">售價 (台幣)</label>
-                <input type="number" id="vehiclePrice" class="form-control" placeholder="請輸入完整金額，例：3500000" required>
-                <div class="form-error" id="vehiclePriceError">請輸入有效的售價</div>
+                <label for="vehicleYear" class="form-required">年份</label>
+                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022" required min="1970" max="2030">
+                <div class="form-error" id="vehicleYearError">請輸入有效的年份</div>
             </div>
             
             <div class="form-group">
@@ -1134,15 +1134,37 @@
             </div>
             
             <div class="form-group">
-                <label for="vehicleModel" class="form-required">車型</label>
-                <input type="text" id="vehicleModel" class="form-control" placeholder="例：FUSO、Volvo FH16、Hino 500" required>
-                <div class="form-error" id="vehicleModelError">請輸入車型</div>
+                <label for="vehicleWeight" class="form-required">載重噸數</label>
+                <input type="number" id="vehicleWeight" class="form-control" step="0.1" placeholder="例：10.5" required>
+                <div class="form-error" id="vehicleWeightError">請輸入載重噸數</div>
             </div>
             
             <div class="form-group">
-                <label for="vehicleYear" class="form-required">出廠年份</label>
-                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022" required min="1970" max="2030">
-                <div class="form-error" id="vehicleYearError">請輸入有效的出廠年份</div>
+                <label for="vehicleMileage" class="form-required">里程數（公里）</label>
+                <input type="number" id="vehicleMileage" class="form-control" placeholder="例：75000" required>
+                <div class="form-error" id="vehicleMileageError">請輸入里程數</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleCategory" class="form-required">分類</label>
+                <select id="vehicleCategory" class="form-control" required>
+                    <option value="">請選擇分類</option>
+                    <option value="拖頭">拖頭</option>
+                    <option value="砂石車">砂石車</option>
+                    <option value="貨櫃車">貨櫃車</option>
+                    <option value="冷凍車">冷凍車</option>
+                    <option value="槽車">槽車</option>
+                    <option value="吊桿車">吊桿車</option>
+                    <option value="平板車">平板車</option>
+                    <option value="其他">其他</option>
+                </select>
+                <div class="form-error" id="vehicleCategoryError">請選擇分類</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="vehiclePrice" class="form-required">售價 (台幣)</label>
+                <input type="number" id="vehiclePrice" class="form-control" placeholder="請輸入完整金額，例：3500000" required>
+                <div class="form-error" id="vehiclePriceError">請輸入有效的售價</div>
             </div>
         </div>
         
@@ -1155,9 +1177,11 @@
             <div class="form-progress">
                 <div class="form-progress-bar" id="formProgressBar"></div>
             </div>
+            
             <div class="form-group">
-                <label for="vehicleWeight">載重噸數</label>
-                <input type="number" id="vehicleWeight" class="form-control" step="0.1" placeholder="例：10.5">
+                <label for="vehicleModel">車輛型式</label>
+                <input type="text" id="vehicleModel" class="form-control" placeholder="例：FUSO、Volvo FH16、Hino 500">
+                <div class="form-error" id="vehicleModelError">請輸入車輛型式</div>
             </div>
             
             <div class="form-group">
@@ -1166,24 +1190,8 @@
             </div>
             
             <div class="form-group">
-                <label for="vehicleMileage">車輛里程 (公里)</label>
-                <input type="number" id="vehicleMileage" class="form-control" placeholder="例：75000">
-            </div>
-            
-            <div class="form-group">
-                <label for="vehicleEngine">引擎規格</label>
-                <input type="text" id="vehicleEngine" class="form-control" placeholder="例：柴油 4D34-3AT2">
-            </div>
-            
-            <div class="form-group">
-                <label for="vehicleCondition">車況評級</label>
-                <select id="vehicleCondition" class="form-control">
-                    <option value="">請選擇車況</option>
-                    <option value="S">S級 (極佳)</option>
-                    <option value="A">A級 (優良)</option>
-                    <option value="B">B級 (良好)</option>
-                    <option value="C">C級 (普通)</option>
-                </select>
+                <label for="vehicleHorsepower">馬力</label>
+                <input type="number" id="vehicleHorsepower" class="form-control" placeholder="例：400">
             </div>
         </div>
         
@@ -1746,8 +1754,8 @@
             specItems[2].querySelector('.spec-value').textContent = `${vehicle.mileage.toLocaleString('zh-TW')} 公里`;
             specItems[3].querySelector('.spec-value').textContent = `${vehicle.weight} 噸`;
             specItems[4].querySelector('.spec-value').textContent = `${vehicle.length} 公尺`;
-            specItems[5].querySelector('.spec-value').textContent = vehicle.engine;
-            specItems[6].querySelector('.spec-value').textContent = getConditionText(vehicle.condition);
+            specItems[5].querySelector('.spec-value').textContent = vehicle.horsepower ? `${vehicle.horsepower}匹` : '未提供';
+            specItems[6].querySelector('.spec-value').textContent = vehicle.category || '未分類';
             
             // 更新描述
             document.querySelector('.detail-section:nth-of-type(2) p').textContent = vehicle.description;
@@ -2189,17 +2197,17 @@
             
             // 獲取必要數據
             const title = document.getElementById('vehicleTitle').value.trim();
-            const price = parseFloat(document.getElementById('vehiclePrice').value);
-            const brand = document.getElementById('vehicleBrand').value;
-            const model = document.getElementById('vehicleModel').value.trim();
             const year = parseInt(document.getElementById('vehicleYear').value);
+            const brand = document.getElementById('vehicleBrand').value;
+            const weight = parseFloat(document.getElementById('vehicleWeight').value);
+            const mileage = parseInt(document.getElementById('vehicleMileage').value);
+            const category = document.getElementById('vehicleCategory').value;
+            const price = parseFloat(document.getElementById('vehiclePrice').value);
             
             // 獲取其他數據
-            const weight = document.getElementById('vehicleWeight').value ? parseFloat(document.getElementById('vehicleWeight').value) : null;
+            const model = document.getElementById('vehicleModel').value.trim() || '';
             const length = document.getElementById('vehicleLength').value ? parseFloat(document.getElementById('vehicleLength').value) : null;
-            const mileage = document.getElementById('vehicleMileage').value ? parseInt(document.getElementById('vehicleMileage').value) : 0;
-            const engine = document.getElementById('vehicleEngine').value.trim() || '';
-            const condition = document.getElementById('vehicleCondition').value || 'B';
+            const horsepower = document.getElementById('vehicleHorsepower').value ? parseInt(document.getElementById('vehicleHorsepower').value) : null;
             const description = document.getElementById('vehicleDescription').value.trim() || '';
             const featuresText = document.getElementById('vehicleFeatures').value.trim() || '';
             const status = document.getElementById('vehicleStatus').value || 'available';
@@ -2361,10 +2369,12 @@
             // 要驗證的必填欄位
             const requiredFields = [
                 document.getElementById('vehicleTitle'),
-                document.getElementById('vehiclePrice'),
+                document.getElementById('vehicleYear'),
                 document.getElementById('vehicleBrand'),
-                document.getElementById('vehicleModel'),
-                document.getElementById('vehicleYear')
+                document.getElementById('vehicleWeight'),
+                document.getElementById('vehicleMileage'),
+                document.getElementById('vehicleCategory'),
+                document.getElementById('vehiclePrice')
             ];
             
             // 驗證每個欄位並收集結果
@@ -2975,15 +2985,15 @@
             
             // 填充表單數據
             document.getElementById('vehicleTitle').value = vehicle.title || '';
-            document.getElementById('vehiclePrice').value = vehicle.price || '';
-            document.getElementById('vehicleBrand').value = vehicle.brand || '';
-            document.getElementById('vehicleModel').value = vehicle.model || '';
             document.getElementById('vehicleYear').value = vehicle.year || '';
+            document.getElementById('vehicleBrand').value = vehicle.brand || '';
             document.getElementById('vehicleWeight').value = vehicle.weight || '';
-            document.getElementById('vehicleLength').value = vehicle.length || '';
             document.getElementById('vehicleMileage').value = vehicle.mileage || '';
-            document.getElementById('vehicleEngine').value = vehicle.engine || '';
-            document.getElementById('vehicleCondition').value = vehicle.condition || '';
+            document.getElementById('vehicleCategory').value = vehicle.category || '';
+            document.getElementById('vehiclePrice').value = vehicle.price || '';
+            document.getElementById('vehicleModel').value = vehicle.model || '';
+            document.getElementById('vehicleLength').value = vehicle.length || '';
+            document.getElementById('vehicleHorsepower').value = vehicle.horsepower || '';
             document.getElementById('vehicleDescription').value = vehicle.description || '';
             document.getElementById('vehicleFeatures').value = vehicle.features ? vehicle.features.join('\n') : '';
             document.getElementById('vehicleStatus').value = vehicle.status || 'available';
