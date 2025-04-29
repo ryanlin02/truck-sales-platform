@@ -730,6 +730,13 @@
         .icon-delete:before { content: "🗑️"; }
         .icon-close:before { content: "×"; }
     </style>
+
+    <!-- GitHub Pages 相關設定 -->
+    <meta name="description" content="大貨車銷售資訊共享平台 - 為同一公司的業務人員提供重車銷售資訊共享服務">
+    <meta name="keywords" content="重車,銷售,資訊共享,大貨車">
+    <meta name="author" content="ryanlin02">
+    <link rel="canonical" href="https://ryanlin02.github.io/truck-sales-platform/">
+
 </head>
 <body>
     <!-- 頂部導航 -->
@@ -1156,31 +1163,14 @@
     <script>
         // Firebase 初始化配置
         const firebaseConfig = {
-            // 在正式實施時，這些配置會從Firebase專案獲取
-            apiKey: "YOUR_API_KEY",
+            apiKey: "AIzaSyA0eb2ZRgmPGgo2aRyzwFHDvFHj5L3Rxqw",
             authDomain: "truck-sales-platform.firebaseapp.com",
             projectId: "truck-sales-platform",
-            storageBucket: "truck-sales-platform.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef0123456789"
+            storageBucket: "truck-sales-platform.firebasestorage.app",
+            messagingSenderId: "611691790674",
+            appId: "1:611691790674:web:c714c6be6091a0e49bfa8b",
+            measurementId: "G-HLXKEX6XT1"
         };
-
-        // Firebase 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-            const firebaseConfig = {
-                apiKey: "AIzaSyA0eb2ZRgmPGgo2aRyzwFHDvFHj5L3Rxqw",
-                authDomain: "truck-sales-platform.firebaseapp.com",
-                projectId: "truck-sales-platform",
-                storageBucket: "truck-sales-platform.firebasestorage.app",
-                messagingSenderId: "611691790674",
-                appId: "1:611691790674:web:c714c6be6091a0e49bfa8b",
-                measurementId: "G-HLXKEX6XT1"
-            };
-            
-            // 初始化應用程式
-            initApp();
-        });
 
         // 全域變數
         let currentUser = null;
@@ -1198,8 +1188,38 @@
             sortBy: 'newest'
         };
 
+        // Firebase 相關變數
+        let db, auth, storage;
+
         // 初始化應用程式
-        function initApp() {
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化 Firebase (僅在開發階段簡化)
+            try {
+                // 初始化 Firebase 應用
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
+                // 在開發階段，為了簡化，我們僅初始化變數但不實際使用 Firebase 服務
+                db = {};
+                auth = {};
+                storage = {};
+                
+                // 設置開發階段的模擬管理員帳戶
+                currentUser = {
+                    id: 'admin1',
+                    name: '系統管理員',
+                    email: 'admin@example.com',
+                    phone: '0900000000',
+                    role: '管理員',
+                    specialty: '系統管理'
+                };
+                
+                console.log('Firebase 初始化成功，開發模式已啟動');
+            } catch (error) {
+                console.error('Firebase 初始化失敗:', error);
+            }
+            
             // 載入模擬數據
             loadMockData();
             
@@ -1209,9 +1229,9 @@
             // 設置事件監聽器
             setupEventListeners();
             
-            // 檢查用戶登入狀態
+            // 更新界面以反映已登入狀態
             checkAuthState();
-        }
+        });
 
         // 載入模擬數據（正式版會從Firebase讀取）
         function loadMockData() {
@@ -1617,12 +1637,7 @@
                     e.preventDefault();
                     const page = item.getAttribute('data-page');
                     
-                    // 若用戶未登入，則某些頁面需要先登入
-                    if ((page === 'add' || page === 'profile') && !currentUser) {
-                        switchPage('auth');
-                        return;
-                    }
-                    
+                    // 在開發階段，所有頁面都可以直接訪問
                     switchPage(page);
                 });
             });
@@ -1869,7 +1884,7 @@
                 previewContainer.className = 'upload-preview';
                 
                 const img = document.createElement('img');
-                img.src = '/api/placeholder/80/80'; // 使用佔位圖
+                img.src = 'https://via.placeholder.com/80x80'; // 使用佔位圖
                 
                 const removeBtn = document.createElement('div');
                 removeBtn.className = 'remove-photo';
@@ -1890,26 +1905,8 @@
 
         // 處理登入
         function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!email || !password) {
-                showToast('請填寫完整登入資訊');
-                return;
-            }
-            
-            // 模擬登入成功
-            currentUser = {
-                id: 'user1',
-                name: '王小明',
-                email: email,
-                phone: '0912345678',
-                role: '業務專員',
-                specialty: '冷凍車、貨運車'
-            };
-            
-            checkAuthState();
-            showToast('登入成功');
+            // 開發階段已預設為管理員登入狀態
+            showToast('已使用管理員身份登入');
             switchPage('list');
         }
 
@@ -1948,20 +1945,25 @@
 
         // 處理登出
         function handleLogout() {
-            currentUser = null;
-            checkAuthState();
-            showToast('已登出');
+            // 開發階段不允許登出
+            showToast('開發階段：管理員始終保持登入狀態');
             switchPage('list');
         }
 
         // 檢查用戶登入狀態
         function checkAuthState() {
-            // 更新個人資料頁
+            // 開發階段始終顯示為已登入狀態
             if (currentUser) {
+                // 更新個人資料頁
                 document.getElementById('profileName').textContent = currentUser.name;
                 document.getElementById('profileRole').textContent = currentUser.role;
                 document.getElementById('profilePhone').textContent = currentUser.phone;
                 document.getElementById('profileEmail').textContent = currentUser.email;
+                
+                // 修改底部導航的顯示
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('disabled');
+                });
                 
                 // 渲染用戶發布的車輛
                 const profileVehicles = document.getElementById('profileVehicles');
@@ -1977,6 +1979,25 @@
                 if (userVehicles.length === 0) {
                     profileVehicles.innerHTML = '<p>尚未發布任何車輛</p>';
                 }
+
+                // 更新統計數據
+                try {
+                    const userVehicles = mockVehicles.filter(v => v.seller && v.seller.id === currentUser.id);
+                    document.getElementById('vehicleCount').textContent = userVehicles.filter(v => v.status !== 'sold').length || 0;
+                    document.getElementById('soldCount').textContent = userVehicles.filter(v => v.status === 'sold').length || 0;
+                    
+                    const totalViews = userVehicles.reduce((sum, v) => sum + (v.views || 0), 0);
+                    document.getElementById('viewCount').textContent = totalViews;
+                } catch (error) {
+                    console.error('更新統計數據時發生錯誤:', error);
+                    // 設置默認值
+                    document.getElementById('vehicleCount').textContent = '0';
+                    document.getElementById('soldCount').textContent = '0';
+                    document.getElementById('viewCount').textContent = '0';
+                }
+                
+                // 開發模式提示
+                console.log('當前以管理員身份運行');
             }
         }
 
@@ -1998,6 +2019,11 @@
 
         // 註冊新用戶
         function registerUser(email, password, name, phone) {
+            // 開發階段簡化版本
+            console.log('開發階段: registerUser 被調用', {email, name, phone});
+            return Promise.resolve();
+            
+            // 以下是正式環境的代碼
             return auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
