@@ -9,6 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-auth-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-firestore-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-storage-compat.min.js"></script>
+    <!-- 添加 browser-image-compression 庫用於壓縮圖片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.0/browser-image-compression.min.js"></script>
 
     <style>
         /* 全局變數 - 集中管理顏色和字體 */
@@ -443,6 +445,14 @@
             text-align: center;
             border-radius: var(--border-radius);
             margin-bottom: 15px;
+            transition: all 0.3s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .photo-upload.drag-over {
+            border-color: var(--secondary-color);
+            background-color: rgba(52, 152, 219, 0.05);
         }
 
         .upload-icon {
@@ -461,9 +471,16 @@
         .upload-preview {
             width: 80px;
             height: 80px;
-            object-fit: cover;
-            border-radius: 5px;
             position: relative;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .upload-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .remove-photo {
@@ -480,6 +497,35 @@
             justify-content: center;
             font-size: 0.7rem;
             cursor: pointer;
+            z-index: 1;
+        }
+
+        .upload-progress {
+            height: 4px;
+            background-color: var(--background-color);
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .upload-info {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .upload-note {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-light);
         }
 
         .form-actions {
@@ -1077,7 +1123,11 @@
                 <p>點擊選擇照片或拖曳至此</p>
                 <input type="file" id="photoInput" style="display: none;" multiple accept="image/*">
                 <button class="btn" id="uploadBtn">選擇照片</button>
-                <p class="upload-note">建議上傳車輛外觀、內裝、引擎等多角度照片</p>
+                <div class="upload-info">推薦尺寸: 1200x800 像素</div>
+                <div class="upload-progress">
+                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                </div>
+                <p class="upload-note">照片將自動壓縮以提升上傳速度，建議上傳車輛外觀、內裝、引擎等多角度照片</p>
             </div>
             
             <div class="upload-photos" id="photoPreviewArea">
@@ -1279,6 +1329,16 @@
             weights: [],
             conditions: [],
             sortBy: 'newest'
+        };
+
+        let uploadedPhotos = []; // 存儲已上傳的照片
+
+        // 照片壓縮配置
+        const imageCompressOptions = {
+            maxSizeMB: 1,              // 最大尺寸為 1 MB
+            maxWidthOrHeight: 1200,    // 最大寬度或高度為 1200 像素
+            useWebWorker: true,        // 使用 Web Worker 以不阻塞主線程
+            initialQuality: 0.8,       // 初始壓縮質量
         };
 
         // Firebase 相關變數
@@ -1763,6 +1823,12 @@
                 document.getElementById('vehicleForm').reset();
                 document.getElementById('photoPreviewArea').innerHTML = '';
                 
+                // 清理照片資源
+                uploadedPhotos.forEach(photo => {
+                    URL.revokeObjectURL(photo.url);
+                });
+                uploadedPhotos = [];
+                
                 // 重置保存按鈕的狀態
                 document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
                 document.getElementById('saveVehicle').removeAttribute('data-id');
@@ -1780,8 +1846,52 @@
             document.getElementById('uploadBtn').addEventListener('click', () => {
                 document.getElementById('photoInput').click();
             });
-            
+
             document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
+
+            // 添加拖放上傳支持
+            const photoUploadArea = document.getElementById('photoUpload');
+
+            photoUploadArea.addEventListener('click', () => {
+                document.getElementById('photoInput').click();
+            });
+
+            // 拖放進入
+            photoUploadArea.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                photoUploadArea.classList.add('drag-over');
+            });
+
+            // 拖放離開
+            photoUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                photoUploadArea.classList.remove('drag-over');
+            });
+
+            // 拖放懸停
+            photoUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                photoUploadArea.classList.add('drag-over');
+            });
+
+            // 拖放釋放
+            photoUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                photoUploadArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    const photoInput = document.getElementById('photoInput');
+                    photoInput.files = e.dataTransfer.files;
+                    
+                    // 使用 change 事件處理文件
+                    const event = new Event('change', { bubbles: true });
+                    photoInput.dispatchEvent(event);
+                }
+            });
             
             // 登入/註冊切換
             document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -2088,40 +2198,134 @@
             // 重新渲染車輛列表和更新個人資料頁
             renderVehicleList();
             checkAuthState();
+
+            // 清理資源
+            uploadedPhotos.forEach(photo => {
+                URL.revokeObjectURL(photo.url);
+            });
+            uploadedPhotos = [];
             
             // 回到列表頁
             switchPage('list');
         }
 
         // 處理照片上傳
-        function handlePhotoUpload(event) {
+        async function handlePhotoUpload(event) {
             const files = event.target.files;
+            if (!files || files.length === 0) return;
             
-            // 模擬照片預覽
-            const previewArea = document.getElementById('photoPreviewArea');
+            // 顯示進度條
+            const progressBar = document.getElementById('uploadProgressBar');
+            progressBar.style.width = '0%';
             
+            // 逐個處理每個文件
             for (let i = 0; i < files.length; i++) {
-                const previewContainer = document.createElement('div');
-                previewContainer.className = 'upload-preview';
+                const file = files[i];
                 
-                const img = document.createElement('img');
-                img.src = 'https://via.placeholder.com/80x80'; // 使用佔位圖
+                // 檢查文件是否為圖片
+                if (!file.type.startsWith('image/')) {
+                    showToast(`${file.name} 不是有效的圖片文件`);
+                    continue;
+                }
                 
-                const removeBtn = document.createElement('div');
-                removeBtn.className = 'remove-photo';
-                removeBtn.innerHTML = '<span class="icon-close"></span>';
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    previewContainer.remove();
-                });
-                
-                previewContainer.appendChild(img);
-                previewContainer.appendChild(removeBtn);
-                previewArea.appendChild(previewContainer);
+                try {
+                    // 更新進度條
+                    progressBar.style.width = `${(i / files.length) * 100}%`;
+                    
+                    // 壓縮圖片
+                    showToast('正在處理圖片...');
+                    const compressedFile = await imageCompression(file, imageCompressOptions);
+                    
+                    // 創建文件的URL
+                    const imageUrl = URL.createObjectURL(compressedFile);
+                    
+                    // 添加到上傳照片數組
+                    uploadedPhotos.push({
+                        file: compressedFile,
+                        url: imageUrl,
+                        name: file.name,
+                        size: compressedFile.size,
+                        type: compressedFile.type,
+                        originalSize: file.size,
+                        compressionRate: Math.round((1 - (compressedFile.size / file.size)) * 100)
+                    });
+                    
+                    // 創建預覽
+                    createPhotoPreview(imageUrl, uploadedPhotos.length - 1);
+                    
+                    // 顯示壓縮信息
+                    const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    const compressedSizeMB = (compressedFile.size / (1024 * 1024)).toFixed(2);
+                    console.log(`壓縮: ${file.name} - 從 ${originalSizeMB}MB 到 ${compressedSizeMB}MB (減少 ${uploadedPhotos[uploadedPhotos.length - 1].compressionRate}%)`);
+                } catch (error) {
+                    console.error('圖片處理錯誤:', error);
+                    showToast(`處理圖片時出錯: ${error.message || '未知錯誤'}`);
+                }
             }
             
-            // 清空檔案選擇，以便再次選擇相同檔案
+            // 完成後更新進度條
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.width = '0%';
+            }, 1000);
+            
+            // 顯示完成消息
+            if (files.length > 0) {
+                showToast(`已成功處理 ${files.length} 張圖片`);
+            }
+            
+            // 清空文件選擇器，以便再次選擇相同文件
             event.target.value = '';
+        }
+
+        // 創建照片預覽
+        function createPhotoPreview(imageUrl, index) {
+            const previewArea = document.getElementById('photoPreviewArea');
+            
+            // 創建預覽容器
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'upload-preview';
+            previewContainer.setAttribute('data-index', index);
+            
+            // 創建圖片元素
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = `上傳照片 ${index + 1}`;
+            
+            // 創建刪除按鈕
+            const removeBtn = document.createElement('div');
+            removeBtn.className = 'remove-photo';
+            removeBtn.innerHTML = '<span class="icon-close"></span>';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removePhoto(index);
+                previewContainer.remove();
+            });
+            
+            // 組合元素
+            previewContainer.appendChild(img);
+            previewContainer.appendChild(removeBtn);
+            previewArea.appendChild(previewContainer);
+        }
+
+        // 移除照片
+        function removePhoto(index) {
+            // 從數組中移除
+            if (index >= 0 && index < uploadedPhotos.length) {
+                // 釋放 URL 對象
+                URL.revokeObjectURL(uploadedPhotos[index].url);
+                
+                // 從數組中移除
+                uploadedPhotos.splice(index, 1);
+                
+                // 重新排序預覽區域中的索引
+                const previews = document.querySelectorAll('#photoPreviewArea .upload-preview');
+                previews.forEach((preview, i) => {
+                    if (i >= index) {
+                        preview.setAttribute('data-index', i);
+                    }
+                });
+            }
         }
 
         // 處理登入
@@ -2572,31 +2776,25 @@
             document.getElementById('saveVehicle').setAttribute('data-mode', 'edit');
             document.getElementById('saveVehicle').setAttribute('data-id', vehicleId);
             
-            // 清空照片預覽區域
+            // 清空照片預覽區域和上傳照片陣列
             document.getElementById('photoPreviewArea').innerHTML = '';
-            
+            uploadedPhotos = [];
+
             // 添加照片預覽
             if (vehicle.photos && vehicle.photos.length > 0) {
-                const previewArea = document.getElementById('photoPreviewArea');
-                
-                vehicle.photos.forEach((photoUrl) => {
-                    const previewContainer = document.createElement('div');
-                    previewContainer.className = 'upload-preview';
-                    
-                    const img = document.createElement('img');
-                    img.src = photoUrl;
-                    
-                    const removeBtn = document.createElement('div');
-                    removeBtn.className = 'remove-photo';
-                    removeBtn.innerHTML = '<span class="icon-close"></span>';
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        previewContainer.remove();
+                vehicle.photos.forEach((photoUrl, photoIndex) => {
+                    // 創建一個模擬的uploaded照片對象
+                    uploadedPhotos.push({
+                        url: photoUrl,
+                        name: `photo-${photoIndex + 1}.jpg`,
+                        size: 0,
+                        type: 'image/jpeg',
+                        originalSize: 0,
+                        compressionRate: 0
                     });
                     
-                    previewContainer.appendChild(img);
-                    previewContainer.appendChild(removeBtn);
-                    previewArea.appendChild(previewContainer);
+                    // 創建預覽
+                    createPhotoPreview(photoUrl, photoIndex);
                 });
             }
             
