@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大貨車銷售資訊共享平台</title>
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-storage-compat.min.js"></script>
+
+    <style>
+        /* 全局變數 - 集中管理顏色和字體 */
+        :root {
+            /* 主色調 */
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --background-color: #f5f7fa;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --text-light: #7f8c8d;
+            --border-color: #dcdde1;
+            
+            /* 字體 */
+            --main-font: 'Noto Sans TC', sans-serif;
+            --heading-font: 'Noto Sans TC', sans-serif;
+            
+            /* 大小和間距 */
+            --border-radius: 8px;
+            --card-padding: 15px;
+            --section-padding: 20px;
+            --standard-spacing: 10px;
+        }
+
+        /* 基本重置和全局樣式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--main-font);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding-bottom: 70px; /* 為底部導航騰出空間 */
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--heading-font);
+            margin-bottom: var(--standard-spacing);
+        }
+
+        /* 按鈕樣式 */
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-family: var(--main-font);
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #1e2b38;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+        }
+
+        .btn-accent:hover {
+            background-color: #c0392b;
+        }
+
+        /* 頂部導航 */
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px var(--section-padding);
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            margin: 0;
+            text-align: center;
+        }
+
+        /* 車輛卡片列表 */
+        .vehicle-list {
+            padding: var(--section-padding);
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .vehicle-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .vehicle-card:active {
+            transform: scale(0.98);
+        }
+
+        .vehicle-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .vehicle-info {
+            padding: var(--card-padding);
+        }
+
+        .vehicle-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+
+        .vehicle-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .vehicle-specs {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .vehicle-sales {
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            text-align: right;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
+        .status-available {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .status-negotiating {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .status-sold {
+            background-color: #7f8c8d;
+            color: white;
+        }
+
+        /* 搜尋欄 */
+        .search-bar {
+            padding: var(--standard-spacing);
+            background-color: var(--card-background);
+            margin-bottom: var(--standard-spacing);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-family: var(--main-font);
+        }
+
+        .filter-toggle {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .filter-toggle i {
+            margin-right: 5px;
+        }
+
+        /* 篩選面板 */
+        .filter-panel {
+            background-color: var(--card-background);
+            padding: var(--card-padding);
+            margin-bottom: var(--standard-spacing);
+            border-radius: var(--border-radius);
+            display: none;
+        }
+
+        .filter-section {
+            margin-bottom: 15px;
+        }
+
+        .filter-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-chip {
+            background-color: var(--background-color);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-chip.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .range-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-filter input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        /* 底部導航 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-background);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-light);
+            text-decoration: none;
+        }
+
+        .nav-item.active {
+            color: var(--secondary-color);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            margin-bottom: 3px;
+        }
+
+        /* 車輛詳情頁 */
+        .vehicle-detail {
+            padding: var(--section-padding);
+            display: none;
+        }
+
+        .detail-header {
+            margin-bottom: 20px;
+        }
+
+        .detail-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .detail-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .photo-gallery {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .main-photo {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+        }
+
+        .thumbnails {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .thumbnail {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .thumbnail.active {
+            border-color: var(--secondary-color);
+        }
+
+        .detail-section {
+            background-color: var(--card-background);
+            padding: var(--card-padding);
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .detail-section h3 {
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .spec-label {
+            color: var(--text-light);
+        }
+
+        .contact-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .contact-btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 新增/編輯車輛表單 */
+        .vehicle-form {
+            padding: var(--section-padding);
+            display: none;
+        }
+
+        .form-section {
+            background-color: var(--card-background);
+            padding: var(--card-padding);
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-family: var(--main-font);
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+        }
+
+        .photo-upload {
+            border: 2px dashed var(--border-color);
+            padding: 20px;
+            text-align: center;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .upload-photos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .upload-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .remove-photo {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--accent-color);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        /* 登入/註冊表單 */
+        .auth-container {
+            padding: var(--section-padding);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 130px);
+            display: none;
+        }
+
+        .auth-box {
+            background-color: var(--card-background);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .auth-tab.active {
+            border-bottom: 2px solid var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-submit {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+        }
+
+        .auth-forgot {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: 15px;
+            color: var(--secondary-color);
+            cursor: pointer;
+        }
+
+        /* 個人資料頁面 */
+        .profile-page {
+            padding: var(--section-padding);
+            display: none;
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            object-fit: cover;
+            border: 3px solid var(--secondary-color);
+        }
+
+        .profile-name {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .profile-role {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--card-background);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .profile-section {
+            background-color: var(--card-background);
+            padding: var(--card-padding);
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .profile-section h3 {
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .profile-item {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .profile-item-icon {
+            margin-right: 10px;
+            color: var(--secondary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-btn {
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        /* 加載狀態 */
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--secondary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 訊息通知 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* 響應式設計 */
+        @media (min-width: 768px) {
+            .vehicle-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            body {
+                max-width: 768px;
+                margin: 0 auto;
+                border-left: 1px solid var(--border-color);
+                border-right: 1px solid var(--border-color);
+            }
+        }
+
+        /* 暫時性功能提示 */
+        .feature-coming {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .feature-msg {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .feature-close {
+            margin-top: 15px;
+        }
+
+        /* 設置圖標的樣式（用 UTF-8 字符代替） */
+        .icon-filter:before { content: "⚙️"; }
+        .icon-search:before { content: "🔍"; }
+        .icon-home:before { content: "🏠"; }
+        .icon-add:before { content: "➕"; }
+        .icon-profile:before { content: "👤"; }
+        .icon-heart:before { content: "❤️"; }
+        .icon-back:before { content: "←"; }
+        .icon-share:before { content: "↗️"; }
+        .icon-contact:before { content: "📞"; }
+        .icon-camera:before { content: "📷"; }
+        .icon-edit:before { content: "✏️"; }
+        .icon-delete:before { content: "🗑️"; }
+        .icon-close:before { content: "×"; }
+    </style>
+</head>
+<body>
+    <!-- 頂部導航 -->
+    <header class="header">
+        <h1>大貨車銷售共享平台</h1>
+    </header>
+
+    <!-- 搜尋與篩選區域 -->
+    <div class="search-bar">
+        <input type="text" class="search-input" placeholder="搜尋車輛、品牌、型號...">
+        <div class="filter-toggle" id="filterToggle">
+            <span class="icon-filter"></span> 篩選與排序
+        </div>
+    </div>
+
+    <!-- 篩選面板 -->
+    <div class="filter-panel" id="filterPanel">
+        <div class="filter-section">
+            <h3>價格範圍</h3>
+            <div class="range-filter">
+                <input type="number" placeholder="最低" id="minPrice">
+                <span>至</span>
+                <input type="number" placeholder="最高" id="maxPrice">
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>車齡/年份</h3>
+            <div class="range-filter">
+                <input type="number" placeholder="最早" id="minYear">
+                <span>至</span>
+                <input type="number" placeholder="最新" id="maxYear">
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>品牌/廠牌</h3>
+            <div class="filter-options" id="brandFilters">
+                <div class="filter-chip" data-brand="三菱">三菱</div>
+                <div class="filter-chip" data-brand="日野">日野</div>
+                <div class="filter-chip" data-brand="五十鈴">五十鈴</div>
+                <div class="filter-chip" data-brand="賓士">賓士</div>
+                <div class="filter-chip" data-brand="福斯">福斯</div>
+                <div class="filter-chip" data-brand="斯堪尼亞">斯堪尼亞</div>
+                <div class="filter-chip" data-brand="沃爾沃">沃爾沃</div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>載重噸數</h3>
+            <div class="filter-options" id="weightFilters">
+                <div class="filter-chip" data-weight="3.5">3.5噸以下</div>
+                <div class="filter-chip" data-weight="5">5噸</div>
+                <div class="filter-chip" data-weight="8">8噸</div>
+                <div class="filter-chip" data-weight="10">10噸</div>
+                <div class="filter-chip" data-weight="15">15噸以上</div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>車況評級</h3>
+            <div class="filter-options" id="conditionFilters">
+                <div class="filter-chip" data-condition="S">S級 (極佳)</div>
+                <div class="filter-chip" data-condition="A">A級 (優良)</div>
+                <div class="filter-chip" data-condition="B">B級 (良好)</div>
+                <div class="filter-chip" data-condition="C">C級 (普通)</div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>排序方式</h3>
+            <div class="filter-options" id="sortOptions">
+                <div class="filter-chip active" data-sort="newest">最新上架</div>
+                <div class="filter-chip" data-sort="price-low">價格低到高</div>
+                <div class="filter-chip" data-sort="price-high">價格高到低</div>
+                <div class="filter-chip" data-sort="year-new">年份新到舊</div>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button class="btn" id="resetFilters">重置</button>
+            <button class="btn btn-primary" id="applyFilters">套用篩選</button>
+        </div>
+    </div>
+
+    <!-- 車輛列表 -->
+    <div class="vehicle-list" id="vehicleList"></div>
+
+    <!-- 車輛詳情頁 -->
+    <div class="vehicle-detail" id="vehicleDetail">
+        <div class="detail-header">
+            <div class="detail-price">$3,880,000</div>
+            <div class="detail-title">2021 三菱 FUSO 10.5噸 棉被式冷凍車</div>
+        </div>
+
+        <div class="photo-gallery">
+            <img src="/api/placeholder/400/320" alt="主圖" class="main-photo" id="mainPhoto">
+            <div class="thumbnails" id="thumbnails">
+                <img src="/api/placeholder/400/320" alt="縮圖1" class="thumbnail active">
+                <img src="/api/placeholder/400/320" alt="縮圖2" class="thumbnail">
+                <img src="/api/placeholder/400/320" alt="縮圖3" class="thumbnail">
+                <img src="/api/placeholder/400/320" alt="縮圖4" class="thumbnail">
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3>車輛規格</h3>
+            <div class="spec-item">
+                <span class="spec-label">廠牌型號：</span>
+                <span class="spec-value">三菱 FUSO</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">出廠年份：</span>
+                <span class="spec-value">2021年</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">車輛里程：</span>
+                <span class="spec-value">78,500 公里</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">載重噸數：</span>
+                <span class="spec-value">10.5 噸</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">車身長度：</span>
+                <span class="spec-value">6.4 公尺</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">引擎規格：</span>
+                <span class="spec-value">柴油 4D34-3AT2</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">車況評級：</span>
+                <span class="spec-value">A級 (優良)</span>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3>車輛描述</h3>
+            <p>原廠保養,無事故,適合生鮮運輸,冷凍系統新近檢修完成,制冷效果佳,可達-18°C。車體內部為最新棉被式設計,保溫效果更優,節能省油。引擎動力充沛,油耗表現優異。</p>
+        </div>
+
+        <div class="detail-section">
+            <h3>特殊配備</h3>
+            <ul>
+                <li>原廠中央空調</li>
+                <li>倒車雷達與攝影機</li>
+                <li>自動恆溫系統</li>
+                <li>多功能方向盤</li>
+                <li>車載衛星導航</li>
+                <li>省油行車系統</li>
+            </ul>
+        </div>
+
+        <div class="contact-section">
+            <h3>聯絡業務人員</h3>
+            <p>王小明 專員</p>
+            <p>專長：冷凍車、貨運車</p>
+            <a href="tel:0912345678" class="contact-btn">
+                <span class="icon-contact"></span> 撥打電話
+            </a>
+        </div>
+    </div>
+
+    <!-- 新增/編輯車輛表單 -->
+    <div class="vehicle-form" id="vehicleForm">
+        <h2>新增車輛資訊</h2>
+        
+        <div class="form-section">
+            <h3>基本資訊</h3>
+            <div class="form-group">
+                <label for="vehicleTitle">車輛標題</label>
+                <input type="text" id="vehicleTitle" class="form-control" placeholder="例：2022 三菱 FUSO 10噸 冷凍車">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehiclePrice">售價 (台幣)</label>
+                <input type="number" id="vehiclePrice" class="form-control" placeholder="請輸入完整金額，例：3500000">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleBrand">廠牌</label>
+                <select id="vehicleBrand" class="form-control">
+                    <option value="">請選擇廠牌</option>
+                    <option value="三菱">三菱</option>
+                    <option value="日野">日野</option>
+                    <option value="五十鈴">五十鈴</option>
+                    <option value="賓士">賓士</option>
+                    <option value="福斯">福斯</option>
+                    <option value="斯堪尼亞">斯堪尼亞</option>
+                    <option value="沃爾沃">沃爾沃</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleModel">車型</label>
+                <input type="text" id="vehicleModel" class="form-control" placeholder="例：FUSO、Volvo FH16、Hino 500">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleYear">出廠年份</label>
+                <input type="number" id="vehicleYear" class="form-control" placeholder="例：2022">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>車輛規格</h3>
+            <div class="form-group">
+                <label for="vehicleWeight">載重噸數</label>
+                <input type="number" id="vehicleWeight" class="form-control" step="0.1" placeholder="例：10.5">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleLength">車身長度 (公尺)</label>
+                <input type="number" id="vehicleLength" class="form-control" step="0.1" placeholder="例：6.4">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleMileage">車輛里程 (公里)</label>
+                <input type="number" id="vehicleMileage" class="form-control" placeholder="例：75000">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleEngine">引擎規格</label>
+                <input type="text" id="vehicleEngine" class="form-control" placeholder="例：柴油 4D34-3AT2">
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleCondition">車況評級</label>
+                <select id="vehicleCondition" class="form-control">
+                    <option value="">請選擇車況</option>
+                    <option value="S">S級 (極佳)</option>
+                    <option value="A">A級 (優良)</option>
+                    <option value="B">B級 (良好)</option>
+                    <option value="C">C級 (普通)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>車輛照片</h3>
+            <div class="photo-upload" id="photoUpload">
+                <div class="upload-icon icon-camera"></div>
+                <p>點擊選擇照片或拖曳至此</p>
+                <input type="file" id="photoInput" style="display: none;" multiple accept="image/*">
+                <button class="btn" id="uploadBtn">選擇照片</button>
+                <p class="upload-note">建議上傳車輛外觀、內裝、引擎等多角度照片</p>
+            </div>
+            
+            <div class="upload-photos" id="photoPreviewArea">
+                <!-- 上傳照片預覽將會顯示在此 -->
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>車輛描述</h3>
+            <div class="form-group">
+                <label for="vehicleDescription">詳細描述</label>
+                <textarea id="vehicleDescription" class="form-control" placeholder="請詳細描述車輛狀況、特點、保養記錄等..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="vehicleFeatures">特殊配備</label>
+                <textarea id="vehicleFeatures" class="form-control" placeholder="列出車輛配備，每項配備一行"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>車輛狀態</h3>
+            <div class="form-group">
+                <label for="vehicleStatus">銷售狀態</label>
+                <select id="vehicleStatus" class="form-control">
+                    <option value="available">販售中</option>
+                    <option value="negotiating">洽談中</option>
+                    <option value="sold">已售出</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button class="btn" id="cancelForm">取消</button>
+            <button class="btn btn-primary" id="saveVehicle">儲存車輛資訊</button>
+        </div>
+    </div>
+    
+    <!-- 登入/註冊表單 -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <h2 class="auth-title">歡迎使用大貨車銷售共享平台</h2>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" data-tab="login">登入</div>
+                <div class="auth-tab" data-tab="register">註冊</div>
+            </div>
+            
+            <div class="auth-form active" id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">電子郵件</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="請輸入您的電子郵件">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">密碼</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="請輸入密碼">
+                </div>
+                
+                <button class="btn btn-primary auth-submit" id="loginBtn">登入</button>
+                <div class="auth-forgot" id="forgotPassword">忘記密碼？</div>
+            </div>
+            
+            <div class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">姓名</label>
+                    <input type="text" id="registerName" class="form-control" placeholder="請輸入您的姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">電子郵件</label>
+                    <input type="email" id="registerEmail" class="form-control" placeholder="請輸入您的電子郵件">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPhone">電話</label>
+                    <input type="tel" id="registerPhone" class="form-control" placeholder="請輸入您的聯絡電話">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">密碼</label>
+                    <input type="password" id="registerPassword" class="form-control" placeholder="請設定密碼 (至少8位)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">確認密碼</label>
+                    <input type="password" id="registerPasswordConfirm" class="form-control" placeholder="請再次輸入密碼">
+                </div>
+                
+                <button class="btn btn-primary auth-submit" id="registerBtn">註冊</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 個人資料頁面 -->
+    <div class="profile-page" id="profilePage">
+        <div class="profile-header">
+            <img src="/api/placeholder/100/100" alt="用戶頭像" class="profile-avatar">
+            <h2 class="profile-name" id="profileName">王小明</h2>
+            <div class="profile-role" id="profileRole">業務專員</div>
+        </div>
+        
+        <div class="profile-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="vehicleCount">15</div>
+                <div class="stat-label">在售車輛</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="soldCount">28</div>
+                <div class="stat-label">已售車輛</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="viewCount">253</div>
+                <div class="stat-label">總瀏覽數</div>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h3>聯絡資訊</h3>
+            <div class="profile-item">
+                <div class="profile-item-icon icon-contact"></div>
+                <div id="profilePhone">0912-345-678</div>
+            </div>
+            <div class="profile-item">
+                <div class="profile-item-icon">📧</div>
+                <div id="profileEmail">wang@example.com</div>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h3>專長車型</h3>
+            <div class="profile-item">
+                <div class="profile-item-icon">🚚</div>
+                <div>冷凍車、貨運車</div>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h3>我的車輛</h3>
+            <div class="profile-vehicles" id="profileVehicles">
+                <!-- 會動態生成此用戶的車輛列表 -->
+            </div>
+        </div>
+        
+        <button class="btn btn-accent logout-btn" id="logoutBtn">登出</button>
+    </div>
+
+    <!-- 底部導航 -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" data-page="list">
+            <div class="nav-icon icon-home"></div>
+            <div>首頁</div>
+        </a>
+        <a href="#" class="nav-item" data-page="add">
+            <div class="nav-icon icon-add"></div>
+            <div>新增</div>
+        </a>
+        <a href="#" class="nav-item" data-page="profile">
+            <div class="nav-icon icon-profile"></div>
+            <div>我的</div>
+        </a>
+    </nav>
+    
+    <!-- 訊息通知 -->
+    <div class="toast" id="toast"></div>
+    
+    <!-- 暫時性功能提示 -->
+    <div class="feature-coming" id="featureComing">
+        <div class="feature-msg">
+            <h3>功能開發中</h3>
+            <p>此功能正在開發中，敬請期待！</p>
+            <button class="btn feature-close" id="featureClose">了解</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase 初始化配置
+        const firebaseConfig = {
+            // 在正式實施時，這些配置會從Firebase專案獲取
+            apiKey: "YOUR_API_KEY",
+            authDomain: "truck-sales-platform.firebaseapp.com",
+            projectId: "truck-sales-platform",
+            storageBucket: "truck-sales-platform.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef0123456789"
+        };
+
+        // Firebase 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 實際部署時取消註解下方程式碼
+            // firebase.initializeApp(firebaseConfig);
+            // const auth = firebase.auth();
+            // const db = firebase.firestore();
+            // const storage = firebase.storage();
+            
+            // 初始化應用程式
+            initApp();
+        });
+
+        // 全域變數
+        let currentUser = null;
+        const mockVehicles = []; // 模擬數據，正式部署時會從Firebase讀取
+        let currentPage = 'list';
+        let selectedVehicle = null;
+        let filters = {
+            minPrice: null,
+            maxPrice: null,
+            minYear: null,
+            maxYear: null,
+            brands: [],
+            weights: [],
+            conditions: [],
+            sortBy: 'newest'
+        };
+
+        // 初始化應用程式
+        function initApp() {
+            // 載入模擬數據
+            loadMockData();
+            
+            // 渲染車輛列表
+            renderVehicleList();
+            
+            // 設置事件監聽器
+            setupEventListeners();
+            
+            // 檢查用戶登入狀態
+            checkAuthState();
+        }
+
+        // 載入模擬數據（正式版會從Firebase讀取）
+        function loadMockData() {
+            mockVehicles.push({
+                id: '1',
+                title: '2021 三菱 FUSO 10.5噸 棉被式冷凍車',
+                price: 3880000,
+                brand: '三菱',
+                model: 'FUSO',
+                year: 2021,
+                weight: 10.5,
+                length: 6.4,
+                mileage: 78500,
+                engine: '柴油 4D34-3AT2',
+                condition: 'A',
+                description: '原廠保養,無事故,適合生鮮運輸,冷凍系統新近檢修完成,制冷效果佳,可達-18°C。車體內部為最新棉被式設計,保溫效果更優,節能省油。引擎動力充沛,油耗表現優異。',
+                features: [
+                    '原廠中央空調',
+                    '倒車雷達與攝影機',
+                    '自動恆溫系統',
+                    '多功能方向盤',
+                    '車載衛星導航',
+                    '省油行車系統'
+                ],
+                status: 'available',
+                photos: ['/api/placeholder/400/320'],
+                seller: {
+                    id: 'user1',
+                    name: '王小明',
+                    phone: '0912345678',
+                    email: 'wang@example.com',
+                    specialty: '冷凍車、貨運車'
+                },
+                createdAt: new Date('2025-03-15').getTime(),
+                views: 158
+            });
+            
+            mockVehicles.push({
+                id: '2',
+                title: '2023 日野 500系列 15噸 平斗車',
+                price: 4520000,
+                brand: '日野',
+                model: '500系列',
+                year: 2023,
+                weight: 15,
+                length: 7.2,
+                mileage: 38000,
+                engine: '柴油 J08E-VB',
+                condition: 'S',
+                description: '原廠新車,僅輕度使用,車況極佳,引擎狀態完美,動力充沛。底盤結構穩固,適合長途運輸,省油環保新款引擎。全車無事故,原廠完整保養記錄。',
+                features: [
+                    '全車自動監控系統',
+                    '防側滑控制',
+                    'LED燈組',
+                    '駕駛輔助系統',
+                    '高級音響系統',
+                    '全車隔熱貼膜'
+                ],
+                status: 'available',
+                photos: ['/api/placeholder/400/320'],
+                seller: {
+                    id: 'user2',
+                    name: '李大方',
+                    phone: '0987654321',
+                    email: 'lee@example.com',
+                    specialty: '平斗車、重型貨車'
+                },
+                createdAt: new Date('2025-04-10').getTime(),
+                views: 87
+            });
+            
+            mockVehicles.push({
+                id: '3',
+                title: '2020 五十鈴 ELF 5噸 一般貨車',
+                price: 1850000,
+                brand: '五十鈴',
+                model: 'ELF',
+                year: 2020,
+                weight: 5,
+                length: 5.2,
+                mileage: 105000,
+                engine: '柴油 4HK1-TCS',
+                condition: 'B',
+                description: '中古車況良好,已完成大保養,引擎運轉順暢,底盤無異音。車身結構完整,適合城市配送使用。車輛經過專業檢測,無重大事故。',
+                features: [
+                    '冷氣系統',
+                    'ABS煞車系統',
+                    '倒車雷達',
+                    '安全氣囊',
+                    '電動窗',
+                    '中控鎖'
+                ],
+                status: 'negotiating',
+                photos: ['/api/placeholder/400/320'],
+                seller: {
+                    id: 'user3',
+                    name: '張小華',
+                    phone: '0923456789',
+                    email: 'chang@example.com',
+                    specialty: '一般貨車、小型車'
+                },
+                createdAt: new Date('2025-02-28').getTime(),
+                views: 213
+            });
+            
+            // 再加幾輛以增加列表內容
+            mockVehicles.push({
+                id: '4',
+                title: '2022 賓士 Actros 3363 大型拖車頭',
+                price: 8950000,
+                brand: '賓士',
+                model: 'Actros 3363',
+                year: 2022,
+                weight: 25,
+                length: 6.8,
+                mileage: 55000,
+                engine: '柴油 OM471 12.8L',
+                condition: 'S',
+                description: '歐規進口,頂級配備,車況極佳,適合長途運輸。原廠保養,完整記錄。引擎強大省油,拉重貨表現優異。內裝舒適,駕駛體驗佳。',
+                features: [
+                    '智能駕駛輔助',
+                    '豪華雙人臥舖',
+                    '全景天窗',
+                    '車道偏離警示',
+                    '自動緊急煞車',
+                    '360度環景攝影'
+                ],
+                status: 'available',
+                photos: ['/api/placeholder/400/320'],
+                seller: {
+                    id: 'user1',
+                    name: '王小明',
+                    phone: '0912345678',
+                    email: 'wang@example.com',
+                    specialty: '冷凍車、貨運車'
+                },
+                createdAt: new Date('2025-04-05').getTime(),
+                views: 132
+            });
+            
+            mockVehicles.push({
+                id: '5',
+                title: '2019 沃爾沃 FH16 重型貨車',
+                price: 3200000,
+                brand: '沃爾沃',
+                model: 'FH16',
+                year: 2019,
+                weight: 20,
+                length: 7.5,
+                mileage: 189000,
+                engine: '柴油 D16K 16L',
+                condition: 'B',
+                description: '車況良好,引擎動力十足,底盤扎實,適合長途重載。內裝維護良好,多項配備齊全。完成大保養,輪胎八成新。',
+                features: [
+                    'I-Shift自動變速箱',
+                    '智能巡航系統',
+                    '駕駛姿勢輔助',
+                    '防傾倒系統',
+                    '先進煞車系統',
+                    '勞倫斯座椅'
+                ],
+                status: 'available',
+                photos: ['/api/placeholder/400/320'],
+                seller: {
+                    id: 'user2',
+                    name: '李大方',
+                    phone: '0987654321',
+                    email: 'lee@example.com',
+                    specialty: '平斗車、重型貨車'
+                },
+                createdAt: new Date('2025-03-22').getTime(),
+                views: 98
+            });
+        }
+
+        // 渲染車輛列表
+        function renderVehicleList(filteredVehicles = null) {
+            const vehicleList = document.getElementById('vehicleList');
+            vehicleList.innerHTML = '';
+            
+            const vehicles = filteredVehicles || mockVehicles;
+            
+            if (vehicles.length === 0) {
+                vehicleList.innerHTML = '<div class="no-results">沒有符合條件的車輛</div>';
+                return;
+            }
+            
+            vehicles.forEach(vehicle => {
+                if (vehicle.status === 'sold' && !currentUser) return; // 非登入用戶不顯示已售出車輛
+                
+                const card = document.createElement('div');
+                card.className = 'vehicle-card';
+                card.setAttribute('data-id', vehicle.id);
+                
+                // 設置狀態標籤
+                let statusBadge = '';
+                if (vehicle.status === 'negotiating') {
+                    statusBadge = '<span class="status-badge status-negotiating">洽談中</span>';
+                } else if (vehicle.status === 'sold') {
+                    statusBadge = '<span class="status-badge status-sold">已售出</span>';
+                } else {
+                    statusBadge = '<span class="status-badge status-available">販售中</span>';
+                }
+                
+                // 格式化價格
+                const formattedPrice = vehicle.price.toLocaleString('zh-TW');
+                
+                card.innerHTML = `
+                    <img src="${vehicle.photos[0]}" alt="${vehicle.title}" class="vehicle-image">
+                    <div class="vehicle-info">
+                        <div class="vehicle-price">${formattedPrice} ${statusBadge}</div>
+                        <div class="vehicle-title">${vehicle.title}</div>
+                        <div class="vehicle-specs">
+                            ${vehicle.year}年 | ${vehicle.weight}噸 | ${vehicle.length}m | ${vehicle.condition}級
+                        </div>
+                        <div class="vehicle-sales">
+                            業務: ${vehicle.seller.name}
+                        </div>
+                    </div>
+                `;
+                
+                // 點擊卡片顯示詳情
+                card.addEventListener('click', () => {
+                    showVehicleDetail(vehicle.id);
+                });
+                
+                vehicleList.appendChild(card);
+            });
+        }
+
+        // 顯示車輛詳情
+        function showVehicleDetail(vehicleId) {
+            const vehicle = mockVehicles.find(v => v.id === vehicleId);
+            if (!vehicle) return;
+            
+            selectedVehicle = vehicle;
+            
+            // 更新詳情頁內容
+            document.querySelector('.detail-price').textContent = `${vehicle.price.toLocaleString('zh-TW')}`;
+            document.querySelector('.detail-title').textContent = vehicle.title;
+            
+            // 更新主圖
+            const mainPhoto = document.getElementById('mainPhoto');
+            mainPhoto.src = vehicle.photos[0];
+            
+            // 更新縮圖
+            const thumbnails = document.getElementById('thumbnails');
+            thumbnails.innerHTML = '';
+            
+            if (vehicle.photos.length > 0) {
+                vehicle.photos.forEach((photo, index) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = photo;
+                    thumb.alt = `${vehicle.title} 照片 ${index+1}`;
+                    thumb.className = 'thumbnail' + (index === 0 ? ' active' : '');
+                    
+                    thumb.addEventListener('click', () => {
+                        mainPhoto.src = photo;
+                        document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+                        thumb.classList.add('active');
+                    });
+                    
+                    thumbnails.appendChild(thumb);
+                });
+            }
+            
+            // 更新規格
+            const specItems = document.querySelectorAll('.spec-item');
+            specItems[0].querySelector('.spec-value').textContent = `${vehicle.brand} ${vehicle.model}`;
+            specItems[1].querySelector('.spec-value').textContent = `${vehicle.year}年`;
+            specItems[2].querySelector('.spec-value').textContent = `${vehicle.mileage.toLocaleString('zh-TW')} 公里`;
+            specItems[3].querySelector('.spec-value').textContent = `${vehicle.weight} 噸`;
+            specItems[4].querySelector('.spec-value').textContent = `${vehicle.length} 公尺`;
+            specItems[5].querySelector('.spec-value').textContent = vehicle.engine;
+            specItems[6].querySelector('.spec-value').textContent = getConditionText(vehicle.condition);
+            
+            // 更新描述
+            document.querySelector('.detail-section:nth-of-type(2) p').textContent = vehicle.description;
+            
+            // 更新特殊配備
+            const featuresList = document.querySelector('.detail-section:nth-of-type(3) ul');
+            featuresList.innerHTML = '';
+            vehicle.features.forEach(feature => {
+                const li = document.createElement('li');
+                li.textContent = feature;
+                featuresList.appendChild(li);
+            });
+            
+            // 更新聯絡人資訊
+            document.querySelector('.contact-section p:nth-of-type(1)').textContent = `${vehicle.seller.name} 專員`;
+            document.querySelector('.contact-section p:nth-of-type(2)').textContent = `專長：${vehicle.seller.specialty}`;
+            document.querySelector('.contact-section a').href = `tel:${vehicle.seller.phone}`;
+            
+            // 切換到詳情頁
+            switchPage('detail');
+        }
+
+        // 取得車況等級文字描述
+        function getConditionText(condition) {
+            switch(condition) {
+                case 'S': return 'S級 (極佳)';
+                case 'A': return 'A級 (優良)';
+                case 'B': return 'B級 (良好)';
+                case 'C': return 'C級 (普通)';
+                default: return condition;
+            }
+        }
+
+        // 切換頁面
+        function switchPage(page) {
+            // 隱藏所有頁面
+            document.getElementById('vehicleList').parentElement.style.display = 'none';
+            document.getElementById('vehicleDetail').style.display = 'none';
+            document.getElementById('vehicleForm').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('profilePage').style.display = 'none';
+            document.querySelector('.search-bar').style.display = 'none';
+            
+            // 根據頁面類型顯示相應內容
+            switch(page) {
+                case 'list':
+                    document.getElementById('vehicleList').parentElement.style.display = 'grid';
+                    document.querySelector('.search-bar').style.display = 'block';
+                    document.querySelector('.header h1').textContent = '大貨車銷售共享平台';
+                    break;
+                case 'detail':
+                    document.getElementById('vehicleDetail').style.display = 'block';
+                    document.querySelector('.header h1').textContent = '車輛詳情';
+                    break;
+                case 'add':
+                    document.getElementById('vehicleForm').style.display = 'block';
+                    document.querySelector('.header h1').textContent = '新增車輛';
+                    break;
+                case 'auth':
+                    document.getElementById('authContainer').style.display = 'flex';
+                    document.querySelector('.header h1').textContent = '用戶登入/註冊';
+                    break;
+                case 'profile':
+                    document.getElementById('profilePage').style.display = 'block';
+                    document.querySelector('.header h1').textContent = '個人資料';
+                    break;
+            }
+            
+            // 更新底部導航狀態
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const activeNavItem = document.querySelector(`.nav-item[data-page="${page === 'detail' ? 'list' : page}"]`);
+            if (activeNavItem) {
+                activeNavItem.classList.add('active');
+            }
+            
+            currentPage = page;
+        }
+
+        // 設置事件監聽器
+        function setupEventListeners() {
+            // 篩選面板切換
+            document.getElementById('filterToggle').addEventListener('click', () => {
+                const filterPanel = document.getElementById('filterPanel');
+                filterPanel.style.display = filterPanel.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            // 應用篩選條件
+            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+            
+            // 重置篩選條件
+            document.getElementById('resetFilters').addEventListener('click', resetFilters);
+            
+            // 品牌選擇
+            document.querySelectorAll('#brandFilters .filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+                });
+            });
+            
+            // 噸位選擇
+            document.querySelectorAll('#weightFilters .filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+                });
+            });
+            
+            // 車況選擇
+            document.querySelectorAll('#conditionFilters .filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+                });
+            });
+            
+            // 排序選擇
+            document.querySelectorAll('#sortOptions .filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('#sortOptions .filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                });
+            });
+            
+            // 底部導航點擊
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = item.getAttribute('data-page');
+                    
+                    // 若用戶未登入，則某些頁面需要先登入
+                    if ((page === 'add' || page === 'profile') && !currentUser) {
+                        switchPage('auth');
+                        return;
+                    }
+                    
+                    switchPage(page);
+                });
+            });
+            
+            // 搜尋功能
+            document.querySelector('.search-input').addEventListener('input', (e) => {
+                const searchText = e.target.value.toLowerCase();
+                if (searchText.length < 2) {
+                    renderVehicleList();
+                    return;
+                }
+                
+                const filtered = mockVehicles.filter(vehicle => {
+                    return (
+                        vehicle.title.toLowerCase().includes(searchText) ||
+                        vehicle.brand.toLowerCase().includes(searchText) ||
+                        vehicle.model.toLowerCase().includes(searchText) ||
+                        vehicle.description.toLowerCase().includes(searchText) ||
+                        vehicle.features.some(f => f.toLowerCase().includes(searchText))
+                    );
+                });
+                
+                renderVehicleList(filtered);
+            });
+            
+            // 新增/取消車輛表單
+            document.getElementById('cancelForm').addEventListener('click', () => {
+                switchPage('list');
+            });
+            
+            document.getElementById('saveVehicle').addEventListener('click', saveVehicle);
+            
+            // 照片上傳
+            document.getElementById('uploadBtn').addEventListener('click', () => {
+                document.getElementById('photoInput').click();
+            });
+            
+            document.getElementById('photoInput').addEventListener('change', handlePhotoUpload);
+            
+            // 登入/註冊切換
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(tabName + 'Form').classList.add('active');
+                });
+            });
+            
+            // 登入/註冊按鈕
+            document.getElementById('loginBtn').addEventListener('click', handleLogin);
+            document.getElementById('registerBtn').addEventListener('click', handleRegister);
+            
+            // 登出按鈕
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            // 忘記密碼
+            document.getElementById('forgotPassword').addEventListener('click', () => {
+                showFeatureComingSoon();
+            });
+            
+            // 關閉功能提示
+            document.getElementById('featureClose').addEventListener('click', () => {
+                document.getElementById('featureComing').style.display = 'none';
+            });
+        }
+
+        // 應用篩選條件
+        function applyFilters() {
+            // 收集價格範圍
+            filters.minPrice = document.getElementById('minPrice').value ? parseFloat(document.getElementById('minPrice').value) : null;
+            filters.maxPrice = document.getElementById('maxPrice').value ? parseFloat(document.getElementById('maxPrice').value) : null;
+            
+            // 收集年份範圍
+            filters.minYear = document.getElementById('minYear').value ? parseInt(document.getElementById('minYear').value) : null;
+            filters.maxYear = document.getElementById('maxYear').value ? parseInt(document.getElementById('maxYear').value) : null;
+            
+            // 收集品牌
+            filters.brands = [];
+            document.querySelectorAll('#brandFilters .filter-chip.active').forEach(chip => {
+                filters.brands.push(chip.getAttribute('data-brand'));
+            });
+            
+            // 收集噸位
+            filters.weights = [];
+            document.querySelectorAll('#weightFilters .filter-chip.active').forEach(chip => {
+                filters.weights.push(parseFloat(chip.getAttribute('data-weight')));
+            });
+            
+            // 收集車況
+            filters.conditions = [];
+            document.querySelectorAll('#conditionFilters .filter-chip.active').forEach(chip => {
+                filters.conditions.push(chip.getAttribute('data-condition'));
+            });
+            
+            // 收集排序方式
+            filters.sortBy = document.querySelector('#sortOptions .filter-chip.active').getAttribute('data-sort');
+            
+            // 過濾車輛
+            let filtered = [...mockVehicles];
+            
+            // 價格過濾
+            if (filters.minPrice) {
+                filtered = filtered.filter(v => v.price >= filters.minPrice);
+            }
+            
+            if (filters.maxPrice) {
+                filtered = filtered.filter(v => v.price <= filters.maxPrice);
+            }
+            
+            // 年份過濾
+            if (filters.minYear) {
+                filtered = filtered.filter(v => v.year >= filters.minYear);
+            }
+            
+            if (filters.maxYear) {
+                filtered = filtered.filter(v => v.year <= filters.maxYear);
+            }
+            
+            // 品牌過濾
+            if (filters.brands.length > 0) {
+                filtered = filtered.filter(v => filters.brands.includes(v.brand));
+            }
+            
+            // 噸位過濾
+            if (filters.weights.length > 0) {
+                filtered = filtered.filter(v => {
+                    if (filters.weights.includes(3.5) && v.weight <= 3.5) return true;
+                    if (filters.weights.includes(5) && v.weight > 3.5 && v.weight <= 5) return true;
+                    if (filters.weights.includes(8) && v.weight > 5 && v.weight <= 8) return true;
+                    if (filters.weights.includes(10) && v.weight > 8 && v.weight <= 10) return true;
+                    if (filters.weights.includes(15) && v.weight > 10) return true;
+                    return false;
+                });
+            }
+            
+            // 車況過濾
+            if (filters.conditions.length > 0) {
+                filtered = filtered.filter(v => filters.conditions.includes(v.condition));
+            }
+            
+            // 應用排序
+            filtered.sort((a, b) => {
+                switch(filters.sortBy) {
+                    case 'newest':
+                        return b.createdAt - a.createdAt;
+                    case 'price-low':
+                        return a.price - b.price;
+                    case 'price-high':
+                        return b.price - a.price;
+                    case 'year-new':
+                        return b.year - a.year;
+                    default:
+                        return 0;
+                }
+            });
+            
+            // 隱藏篩選面板
+            document.getElementById('filterPanel').style.display = 'none';
+            
+            // 渲染過濾後的車輛列表
+            renderVehicleList(filtered);
+            
+            // 顯示通知
+            showToast(`已找到 ${filtered.length} 輛符合條件的車輛`);
+        }
+
+        // 重置篩選條件
+        function resetFilters() {
+            // 清除輸入值
+            document.getElementById('minPrice').value = '';
+            document.getElementById('maxPrice').value = '';
+            document.getElementById('minYear').value = '';
+            document.getElementById('maxYear').value = '';
+            
+            // 清除選中的標籤
+            document.querySelectorAll('#brandFilters .filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            
+            document.querySelectorAll('#weightFilters .filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            
+            document.querySelectorAll('#conditionFilters .filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            
+            // 重置排序
+            document.querySelectorAll('#sortOptions .filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            document.querySelector('#sortOptions .filter-chip[data-sort="newest"]').classList.add('active');
+            
+            // 重置過濾器狀態
+            filters = {
+                minPrice: null,
+                maxPrice: null,
+                minYear: null,
+                maxYear: null,
+                brands: [],
+                weights: [],
+                conditions: [],
+                sortBy: 'newest'
+            };
+            
+            // 重新渲染車輛列表
+            renderVehicleList();
+        }
+
+        // 儲存車輛資訊
+        function saveVehicle() {
+            // 模擬儲存到Firebase
+            const title = document.getElementById('vehicleTitle').value;
+            if (!title) {
+                showToast('請填寫車輛標題');
+                return;
+            }
+            
+            const price = document.getElementById('vehiclePrice').value;
+            if (!price) {
+                showToast('請填寫售價');
+                return;
+            }
+            
+            // 模擬儲存完成
+            showToast('車輛資訊已儲存');
+            
+            // 回到列表頁
+            switchPage('list');
+        }
+
+        // 處理照片上傳
+        function handlePhotoUpload(event) {
+            const files = event.target.files;
+            
+            // 模擬照片預覽
+            const previewArea = document.getElementById('photoPreviewArea');
+            
+            for (let i = 0; i < files.length; i++) {
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'upload-preview';
+                
+                const img = document.createElement('img');
+                img.src = '/api/placeholder/80/80'; // 使用佔位圖
+                
+                const removeBtn = document.createElement('div');
+                removeBtn.className = 'remove-photo';
+                removeBtn.innerHTML = '<span class="icon-close"></span>';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    previewContainer.remove();
+                });
+                
+                previewContainer.appendChild(img);
+                previewContainer.appendChild(removeBtn);
+                previewArea.appendChild(previewContainer);
+            }
+            
+            // 清空檔案選擇，以便再次選擇相同檔案
+            event.target.value = '';
+        }
+
+        // 處理登入
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showToast('請填寫完整登入資訊');
+                return;
+            }
+            
+            // 模擬登入成功
+            currentUser = {
+                id: 'user1',
+                name: '王小明',
+                email: email,
+                phone: '0912345678',
+                role: '業務專員',
+                specialty: '冷凍車、貨運車'
+            };
+            
+            checkAuthState();
+            showToast('登入成功');
+            switchPage('list');
+        }
+
+        // 處理註冊
+        function handleRegister() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerPasswordConfirm').value;
+            
+            if (!name || !email || !phone || !password || !confirmPassword) {
+                showToast('請填寫完整註冊資訊');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showToast('兩次密碼輸入不一致');
+                return;
+            }
+            
+            // 模擬註冊成功
+            currentUser = {
+                id: 'user1',
+                name: name,
+                email: email,
+                phone: phone,
+                role: '業務專員',
+                specialty: ''
+            };
+            
+            checkAuthState();
+            showToast('註冊成功');
+            switchPage('list');
+        }
+
+        // 處理登出
+        function handleLogout() {
+            currentUser = null;
+            checkAuthState();
+            showToast('已登出');
+            switchPage('list');
+        }
+
+        // 檢查用戶登入狀態
+        function checkAuthState() {
+            // 更新個人資料頁
+            if (currentUser) {
+                document.getElementById('profileName').textContent = currentUser.name;
+                document.getElementById('profileRole').textContent = currentUser.role;
+                document.getElementById('profilePhone').textContent = currentUser.phone;
+                document.getElementById('profileEmail').textContent = currentUser.email;
+                
+                // 渲染用戶發布的車輛
+                const profileVehicles = document.getElementById('profileVehicles');
+                profileVehicles.innerHTML = '';
+                
+                const userVehicles = mockVehicles.filter(v => v.seller.id === currentUser.id);
+                document.getElementById('vehicleCount').textContent = userVehicles.filter(v => v.status !== 'sold').length;
+                document.getElementById('soldCount').textContent = userVehicles.filter(v => v.status === 'sold').length;
+                
+                const totalViews = userVehicles.reduce((sum, v) => sum + v.views, 0);
+                document.getElementById('viewCount').textContent = totalViews;
+                
+                if (userVehicles.length === 0) {
+                    profileVehicles.innerHTML = '<p>尚未發布任何車輛</p>';
+                }
+            }
+        }
+
+        // 顯示通知
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // 顯示功能開發中提示
+        function showFeatureComingSoon() {
+            document.getElementById('featureComing').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
