@@ -1995,6 +1995,236 @@
         function showFeatureComingSoon() {
             document.getElementById('featureComing').style.display = 'flex';
         }
+
+        // 註冊新用戶
+        function registerUser(email, password, name, phone) {
+            return auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    // 添加用戶信息到 Firestore
+                    return db.collection('users').doc(user.uid).set({
+                        name: name,
+                        email: email,
+                        phone: phone,
+                        role: 'user',
+                        specialty: '',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        photoURL: ''
+                    });
+                });
+        }
+
+        // 登入用戶
+        function loginUser(email, password) {
+            return auth.signInWithEmailAndPassword(email, password);
+        }
+
+        // 監聽驗證狀態
+        function initAuthListener() {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // 用戶已登入，獲取用戶信息
+                    db.collection('users').doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                currentUser = {
+                                    id: user.uid,
+                                    ...doc.data()
+                                };
+                                checkAuthState();
+                            }
+                        });
+                } else {
+                    // 用戶已登出
+                    currentUser = null;
+                    checkAuthState();
+                }
+            });
+        }
+
+        // 獲取車輛列表
+        function fetchVehicles() {
+            return db.collection('vehicles')
+                .orderBy('createdAt', 'desc')
+                .get()
+                .then((querySnapshot) => {
+                    const vehicles = [];
+                    querySnapshot.forEach((doc) => {
+                        vehicles.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    return vehicles;
+                });
+        }
+
+        // 儲存新車輛
+        function saveNewVehicle(vehicleData, photoFiles) {
+            if (!currentUser) return Promise.reject('未登入');
+            
+            // 先獲取一個新的車輛ID
+            const vehicleRef = db.collection('vehicles').doc();
+            const vehicleId = vehicleRef.id;
+            
+            // 上傳照片
+            const uploadPromises = [];
+            const photoURLs = [];
+            
+            for (let i = 0; i < photoFiles.length; i++) {
+                const file = photoFiles[i];
+                const fileRef = storage.ref(`vehicles/${vehicleId}/${i}`);
+                
+                const uploadTask = fileRef.put(file, {
+                    customMetadata: {
+                        userId: currentUser.id
+                    }
+                }).then(() => {
+                    return fileRef.getDownloadURL();
+                }).then((url) => {
+                    photoURLs.push(url);
+                });
+                
+                uploadPromises.push(uploadTask);
+            }
+            
+            // 等待所有照片上傳完成
+            return Promise.all(uploadPromises)
+                .then(() => {
+                    // 儲存車輛數據
+                    return vehicleRef.set({
+                        ...vehicleData,
+                        photos: photoURLs,
+                        sellerId: currentUser.id,
+                        sellerName: currentUser.name,
+                        sellerPhone: currentUser.phone,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        views: 0
+                    });
+                });
+        }
+
+        // 更新車輛數據
+        function updateVehicle(vehicleId, vehicleData) {
+            if (!currentUser) return Promise.reject('未登入');
+            
+            return db.collection('vehicles').doc(vehicleId).update({
+                ...vehicleData,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // 查看車輛詳情並增加瀏覽次數
+        function viewVehicleDetail(vehicleId) {
+            const vehicleRef = db.collection('vehicles').doc(vehicleId);
+            
+            // 增加瀏覽次數
+            return db.runTransaction((transaction) => {
+                return transaction.get(vehicleRef).then((doc) => {
+                    if (!doc.exists) {
+                        throw "車輛不存在";
+                    }
+                    
+                    const newViews = (doc.data().views || 0) + 1;
+                    transaction.update(vehicleRef, { views: newViews });
+                    
+                    return {
+                        id: doc.id,
+                        ...doc.data(),
+                        views: newViews
+                    };
+                });
+            });
+        }
+
+        // 執行複合搜尋和篩選
+        function searchVehicles(filters) {
+            let query = db.collection('vehicles');
+            
+            // 價格範圍
+            if (filters.minPrice) {
+                query = query.where('price', '>=', filters.minPrice);
+            }
+            if (filters.maxPrice) {
+                query = query.where('price', '<=', filters.maxPrice);
+            }
+            
+            // 年份範圍 (注意：Firestore 不支持多個範圍查詢，所以處理方法有限)
+            if (filters.minYear) {
+                query = query.where('year', '>=', filters.minYear);
+            }
+            
+            // 品牌篩選 (僅能在單一欄位上使用 in 運算符)
+            if (filters.brands && filters.brands.length > 0) {
+                query = query.where('brand', 'in', filters.brands);
+            }
+            
+            // 獲取結果並手動篩選其他條件
+            return query.get().then((querySnapshot) => {
+                let results = [];
+                querySnapshot.forEach((doc) => {
+                    results.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                // 手動篩選其他條件
+                if (filters.maxYear) {
+                    results = results.filter(v => v.year <= filters.maxYear);
+                }
+                
+                if (filters.weights && filters.weights.length > 0) {
+                    results = results.filter(v => {
+                        if (filters.weights.includes(3.5) && v.weight <= 3.5) return true;
+                        if (filters.weights.includes(5) && v.weight > 3.5 && v.weight <= 5) return true;
+                        if (filters.weights.includes(8) && v.weight > 5 && v.weight <= 8) return true;
+                        if (filters.weights.includes(10) && v.weight > 8 && v.weight <= 10) return true;
+                        if (filters.weights.includes(15) && v.weight > 10) return true;
+                        return false;
+                    });
+                }
+                
+                if (filters.conditions && filters.conditions.length > 0) {
+                    results = results.filter(v => filters.conditions.includes(v.condition));
+                }
+                
+                // 排序
+                switch(filters.sortBy) {
+                    case 'newest':
+                        results.sort((a, b) => b.createdAt - a.createdAt);
+                        break;
+                    case 'price-low':
+                        results.sort((a, b) => a.price - b.price);
+                        break;
+                    case 'price-high':
+                        results.sort((a, b) => b.price - a.price);
+                        break;
+                    case 'year-new':
+                        results.sort((a, b) => b.year - a.year);
+                        break;
+                }
+                
+                return results;
+            });
+        }
+
+        // 啟用離線數據持久化
+        function enableOfflineCapabilities() {
+            db.enablePersistence()
+                .catch((err) => {
+                    if (err.code == 'failed-precondition') {
+                        // 多個標籤頁打開，無法啟用離線功能
+                        console.warn('無法啟用離線功能: 多個標籤頁打開');
+                    } else if (err.code == 'unimplemented') {
+                        // 當前瀏覽器不支持離線功能
+                        console.warn('無法啟用離線功能: 瀏覽器不支持');
+                    }
+                });
+        }
+
     </script>
 </body>
 </html>
