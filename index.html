@@ -1543,17 +1543,18 @@
         // 切換頁面
         function switchPage(page) {
             // 隱藏所有頁面
-            document.getElementById('vehicleList').parentElement.style.display = 'none';
+            document.getElementById('vehicleList').style.display = 'none';
             document.getElementById('vehicleDetail').style.display = 'none';
             document.getElementById('vehicleForm').style.display = 'none';
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('profilePage').style.display = 'none';
             document.querySelector('.search-bar').style.display = 'none';
+            document.getElementById('filterPanel').style.display = 'none';
             
             // 根據頁面類型顯示相應內容
             switch(page) {
                 case 'list':
-                    document.getElementById('vehicleList').parentElement.style.display = 'grid';
+                    document.getElementById('vehicleList').style.display = 'grid';
                     document.querySelector('.search-bar').style.display = 'block';
                     document.querySelector('.header h1').textContent = '大貨車銷售共享平台';
                     break;
@@ -1955,10 +1956,10 @@
             // 開發階段始終顯示為已登入狀態
             if (currentUser) {
                 // 更新個人資料頁
-                document.getElementById('profileName').textContent = currentUser.name;
-                document.getElementById('profileRole').textContent = currentUser.role;
-                document.getElementById('profilePhone').textContent = currentUser.phone;
-                document.getElementById('profileEmail').textContent = currentUser.email;
+                document.getElementById('profileName').textContent = currentUser.name || '系統管理員';
+                document.getElementById('profileRole').textContent = currentUser.role || '管理員';
+                document.getElementById('profilePhone').textContent = currentUser.phone || '0900000000';
+                document.getElementById('profileEmail').textContent = currentUser.email || 'admin@example.com';
                 
                 // 修改底部導航的顯示
                 document.querySelectorAll('.nav-item').forEach(item => {
