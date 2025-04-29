@@ -639,6 +639,99 @@
             margin-top: 30px;
         }
 
+        .profile-vehicle-item {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            position: relative;
+        }
+
+        .profile-vehicle-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+        }
+
+        .profile-vehicle-info {
+            padding: 10px;
+            flex: 1;
+        }
+
+        .profile-vehicle-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-vehicle-price {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .profile-vehicle-meta {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .profile-vehicle-actions {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .profile-action-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--background-color);
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .profile-action-btn:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .profile-vehicle-status {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            font-size: 0.7rem;
+            padding: 2px 5px;
+            border-radius: 10px;
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .profile-vehicle-status.negotiating {
+            background-color: #f39c12;
+        }
+
+        .profile-vehicle-status.sold {
+            background-color: #7f8c8d;
+        }
+
+        .profile-empty-msg {
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 15px 0;
+        }
+
         /* 加載狀態 */
         .loader {
             display: flex;
@@ -1666,6 +1759,18 @@
             
             // 新增/取消車輛表單
             document.getElementById('cancelForm').addEventListener('click', () => {
+                // 重置表單
+                document.getElementById('vehicleForm').reset();
+                document.getElementById('photoPreviewArea').innerHTML = '';
+                
+                // 重置保存按鈕的狀態
+                document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
+                document.getElementById('saveVehicle').removeAttribute('data-id');
+                
+                // 更新頁面標題回新增模式
+                document.querySelector('#vehicleForm h2').textContent = '新增車輛資訊';
+                
+                // 返回列表頁
                 switchPage('list');
             });
             
@@ -1853,7 +1958,7 @@
 
         // 儲存車輛資訊
         function saveVehicle() {
-            // 模擬儲存到Firebase
+            // 獲取表單數據
             const title = document.getElementById('vehicleTitle').value;
             if (!title) {
                 showToast('請填寫車輛標題');
@@ -1866,8 +1971,123 @@
                 return;
             }
             
-            // 模擬儲存完成
-            showToast('車輛資訊已儲存');
+            // 獲取其他必要數據
+            const brand = document.getElementById('vehicleBrand').value;
+            const model = document.getElementById('vehicleModel').value;
+            const year = document.getElementById('vehicleYear').value;
+            const weight = document.getElementById('vehicleWeight').value;
+            const length = document.getElementById('vehicleLength').value;
+            
+            if (!brand || !model || !year || !weight || !length) {
+                showToast('請填寫所有必要欄位');
+                return;
+            }
+            
+            // 獲取其他數據
+            const mileage = document.getElementById('vehicleMileage').value || 0;
+            const engine = document.getElementById('vehicleEngine').value || '';
+            const condition = document.getElementById('vehicleCondition').value || 'B';
+            const description = document.getElementById('vehicleDescription').value || '';
+            const featuresText = document.getElementById('vehicleFeatures').value || '';
+            const status = document.getElementById('vehicleStatus').value || 'available';
+            
+            // 將特殊配備文本轉換為陣列
+            const features = featuresText
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            
+            // 獲取照片預覽區域中的照片URLs
+            const photoElements = document.querySelectorAll('#photoPreviewArea .upload-preview img');
+            const photos = Array.from(photoElements).map(img => img.src);
+            
+            // 如果沒有照片，使用佔位圖
+            if (photos.length === 0) {
+                photos.push('/api/placeholder/400/320');
+            }
+            
+            // 檢查是否為編輯模式
+            const saveMode = document.getElementById('saveVehicle').getAttribute('data-mode');
+            const vehicleId = document.getElementById('saveVehicle').getAttribute('data-id');
+            
+            if (saveMode === 'edit' && vehicleId) {
+                // 編輯現有車輛
+                const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+                
+                if (vehicleIndex !== -1) {
+                    // 更新車輛數據
+                    mockVehicles[vehicleIndex] = {
+                        ...mockVehicles[vehicleIndex],
+                        title,
+                        price: parseFloat(price),
+                        brand,
+                        model,
+                        year: parseInt(year),
+                        weight: parseFloat(weight),
+                        length: parseFloat(length),
+                        mileage: parseInt(mileage),
+                        engine,
+                        condition,
+                        description,
+                        features,
+                        status,
+                        photos,
+                        updatedAt: new Date().getTime()
+                    };
+                    
+                    showToast('車輛資訊已更新');
+                } else {
+                    showToast('更新失敗：找不到車輛');
+                    return;
+                }
+            } else {
+                // 新增車輛
+                const newVehicle = {
+                    id: 'v' + (mockVehicles.length + 1), // 簡單生成ID
+                    title,
+                    price: parseFloat(price),
+                    brand,
+                    model,
+                    year: parseInt(year),
+                    weight: parseFloat(weight),
+                    length: parseFloat(length),
+                    mileage: parseInt(mileage),
+                    engine,
+                    condition,
+                    description,
+                    features,
+                    status,
+                    photos,
+                    seller: {
+                        id: currentUser.id,
+                        name: currentUser.name,
+                        phone: currentUser.phone,
+                        email: currentUser.email,
+                        specialty: currentUser.specialty || '一般車輛'
+                    },
+                    createdAt: new Date().getTime(),
+                    views: 0
+                };
+                
+                // 添加到模擬數據
+                mockVehicles.push(newVehicle);
+                showToast('車輛資訊已儲存');
+            }
+            
+            // 重置表單
+            document.getElementById('vehicleForm').reset();
+            document.getElementById('photoPreviewArea').innerHTML = '';
+            
+            // 重置保存按鈕的狀態
+            document.getElementById('saveVehicle').setAttribute('data-mode', 'add');
+            document.getElementById('saveVehicle').removeAttribute('data-id');
+            
+            // 更新頁面標題回新增模式
+            document.querySelector('#vehicleForm h2').textContent = '新增車輛資訊';
+            
+            // 重新渲染車輛列表和更新個人資料頁
+            renderVehicleList();
+            checkAuthState();
             
             // 回到列表頁
             switchPage('list');
@@ -1969,16 +2189,82 @@
                 // 渲染用戶發布的車輛
                 const profileVehicles = document.getElementById('profileVehicles');
                 profileVehicles.innerHTML = '';
-                
-                const userVehicles = mockVehicles.filter(v => v.seller.id === currentUser.id);
-                document.getElementById('vehicleCount').textContent = userVehicles.filter(v => v.status !== 'sold').length;
-                document.getElementById('soldCount').textContent = userVehicles.filter(v => v.status === 'sold').length;
-                
-                const totalViews = userVehicles.reduce((sum, v) => sum + v.views, 0);
+
+                // 篩選出當前用戶發布的車輛
+                const userVehicles = mockVehicles.filter(v => v.seller && v.seller.id === currentUser.id);
+                document.getElementById('vehicleCount').textContent = userVehicles.filter(v => v.status !== 'sold').length || 0;
+                document.getElementById('soldCount').textContent = userVehicles.filter(v => v.status === 'sold').length || 0;
+
+                const totalViews = userVehicles.reduce((sum, v) => sum + (v.views || 0), 0);
                 document.getElementById('viewCount').textContent = totalViews;
-                
+
                 if (userVehicles.length === 0) {
-                    profileVehicles.innerHTML = '<p>尚未發布任何車輛</p>';
+                    profileVehicles.innerHTML = '<div class="profile-empty-msg">尚未發布任何車輛</div>';
+                } else {
+                    // 遍歷車輛並創建車輛卡片
+                    userVehicles.forEach(vehicle => {
+                        const vehicleItem = document.createElement('div');
+                        vehicleItem.className = 'profile-vehicle-item';
+                        vehicleItem.setAttribute('data-id', vehicle.id);
+                        
+                        // 格式化價格
+                        const formattedPrice = vehicle.price.toLocaleString('zh-TW');
+                        
+                        // 創建狀態標籤
+                        let statusClass = 'available';
+                        let statusText = '販售中';
+                        
+                        if (vehicle.status === 'negotiating') {
+                            statusClass = 'negotiating';
+                            statusText = '洽談中';
+                        } else if (vehicle.status === 'sold') {
+                            statusClass = 'sold';
+                            statusText = '已售出';
+                        }
+                        
+                        // 設置HTML內容
+                        vehicleItem.innerHTML = `
+                            <img src="${vehicle.photos[0]}" alt="${vehicle.title}" class="profile-vehicle-img">
+                            <div class="profile-vehicle-info">
+                                <div class="profile-vehicle-title">${vehicle.title}</div>
+                                <div class="profile-vehicle-price">$${formattedPrice}</div>
+                                <div class="profile-vehicle-meta">
+                                    ${vehicle.year}年 | ${vehicle.views || 0} 次瀏覽
+                                </div>
+                            </div>
+                            <div class="profile-vehicle-actions">
+                                <div class="profile-action-btn icon-edit" title="編輯" data-action="edit"></div>
+                                <div class="profile-action-btn icon-delete" title="刪除" data-action="delete"></div>
+                            </div>
+                            <div class="profile-vehicle-status ${statusClass}">${statusText}</div>
+                        `;
+                        
+                        // 添加點擊事件
+                        vehicleItem.addEventListener('click', (e) => {
+                            // 如果點擊的是操作按鈕，不跳轉到詳情頁
+                            if (e.target.classList.contains('profile-action-btn') || 
+                                e.target.closest('.profile-action-btn')) {
+                                e.stopPropagation();
+                                
+                                const action = e.target.getAttribute('data-action') || 
+                                            e.target.closest('.profile-action-btn').getAttribute('data-action');
+                                const vehicleId = vehicleItem.getAttribute('data-id');
+                                
+                                if (action === 'edit') {
+                                    editVehicle(vehicleId);
+                                } else if (action === 'delete') {
+                                    confirmDeleteVehicle(vehicleId);
+                                }
+                                
+                                return;
+                            }
+                            
+                            // 否則顯示車輛詳情
+                            showVehicleDetail(vehicle.id);
+                        });
+                        
+                        profileVehicles.appendChild(vehicleItem);
+                    });
                 }
 
                 // 更新統計數據
@@ -2250,6 +2536,98 @@
                         console.warn('無法啟用離線功能: 瀏覽器不支持');
                     }
                 });
+        }
+
+        // 編輯車輛
+        function editVehicle(vehicleId) {
+            const vehicle = mockVehicles.find(v => v.id === vehicleId);
+            if (!vehicle) {
+                showToast('找不到車輛資訊');
+                return;
+            }
+            
+            // 切換到新增/編輯頁面
+            switchPage('add');
+            
+            // 更新頁面標題
+            document.querySelector('.header h1').textContent = '編輯車輛';
+            document.querySelector('#vehicleForm h2').textContent = '編輯車輛資訊';
+            
+            // 填充表單數據
+            document.getElementById('vehicleTitle').value = vehicle.title || '';
+            document.getElementById('vehiclePrice').value = vehicle.price || '';
+            document.getElementById('vehicleBrand').value = vehicle.brand || '';
+            document.getElementById('vehicleModel').value = vehicle.model || '';
+            document.getElementById('vehicleYear').value = vehicle.year || '';
+            document.getElementById('vehicleWeight').value = vehicle.weight || '';
+            document.getElementById('vehicleLength').value = vehicle.length || '';
+            document.getElementById('vehicleMileage').value = vehicle.mileage || '';
+            document.getElementById('vehicleEngine').value = vehicle.engine || '';
+            document.getElementById('vehicleCondition').value = vehicle.condition || '';
+            document.getElementById('vehicleDescription').value = vehicle.description || '';
+            document.getElementById('vehicleFeatures').value = vehicle.features ? vehicle.features.join('\n') : '';
+            document.getElementById('vehicleStatus').value = vehicle.status || 'available';
+            
+            // 設置表單保存按鈕的數據屬性，用於保存時區分新增/編輯
+            document.getElementById('saveVehicle').setAttribute('data-mode', 'edit');
+            document.getElementById('saveVehicle').setAttribute('data-id', vehicleId);
+            
+            // 清空照片預覽區域
+            document.getElementById('photoPreviewArea').innerHTML = '';
+            
+            // 添加照片預覽
+            if (vehicle.photos && vehicle.photos.length > 0) {
+                const previewArea = document.getElementById('photoPreviewArea');
+                
+                vehicle.photos.forEach((photoUrl) => {
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'upload-preview';
+                    
+                    const img = document.createElement('img');
+                    img.src = photoUrl;
+                    
+                    const removeBtn = document.createElement('div');
+                    removeBtn.className = 'remove-photo';
+                    removeBtn.innerHTML = '<span class="icon-close"></span>';
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        previewContainer.remove();
+                    });
+                    
+                    previewContainer.appendChild(img);
+                    previewContainer.appendChild(removeBtn);
+                    previewArea.appendChild(previewContainer);
+                });
+            }
+            
+            // 顯示通知
+            showToast('正在編輯車輛資訊');
+        }
+
+        // 刪除車輛確認
+        function confirmDeleteVehicle(vehicleId) {
+            if (confirm('確定要刪除此車輛資訊嗎？此操作無法復原。')) {
+                deleteVehicle(vehicleId);
+            }
+        }
+
+        // 刪除車輛
+        function deleteVehicle(vehicleId) {
+            // 在模擬數據中找到並刪除該車輛
+            const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+            
+            if (vehicleIndex !== -1) {
+                mockVehicles.splice(vehicleIndex, 1);
+                
+                // 更新車輛列表和個人資料頁
+                renderVehicleList();
+                checkAuthState();
+                
+                // 顯示通知
+                showToast('車輛已成功刪除');
+            } else {
+                showToast('刪除失敗：找不到車輛');
+            }
         }
 
     </script>
