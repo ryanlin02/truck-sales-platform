@@ -115,12 +115,14 @@
             background-color: var(--card-background);
             border-radius: var(--border-radius);
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
         }
 
         .vehicle-card:active {
             transform: scale(0.98);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .vehicle-image {
@@ -139,12 +141,16 @@
             font-weight: bold;
             color: var(--accent-color);
             margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .vehicle-title {
             font-size: 1.1rem;
             font-weight: bold;
             margin-bottom: 5px;
+            line-height: 1.3;
         }
 
         .vehicle-specs {
@@ -161,10 +167,10 @@
 
         .status-badge {
             display: inline-block;
-            padding: 3px 8px;
+            padding: 4px 8px;
             border-radius: 12px;
             font-size: 0.7rem;
-            margin-left: 5px;
+            font-weight: normal;
         }
 
         .status-available {
@@ -199,6 +205,42 @@
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             font-family: var(--main-font);
+        }
+
+        .search-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            padding: 0 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .search-icon {
+            color: var(--text-light);
+            margin-right: 8px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 0;
+            border: none;
+            border-radius: 0;
+            font-family: var(--main-font);
+        }
+
+        .search-input:focus {
+            outline: none;
+        }
+
+        .search-clear {
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 4px;
         }
 
         .filter-toggle {
@@ -270,6 +312,89 @@
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
+        }
+
+        .filter-panel {
+            background-color: var(--card-background);
+            padding: var(--card-padding);
+            margin-bottom: var(--standard-spacing);
+            border-radius: var(--border-radius);
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 200;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+        }
+
+        .filter-chip {
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .filter-chip.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+        }
+
+        .filter-summary {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-bottom: 20px;
+            position: sticky;
+            bottom: 0;
+            background-color: var(--card-background);
+            padding-top: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 0;
+            cursor: pointer;
+        }
+
+        .filter-toggle .icon-filter {
+            margin-right: 5px;
         }
 
         /* 底部導航 */
@@ -396,6 +521,88 @@
             text-decoration: none;
             font-weight: bold;
             margin-top: 10px;
+        }
+
+        .detail-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .back-btn {
+            background-color: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            color: var(--text-color);
+            padding: 8px 0;
+            cursor: pointer;
+        }
+
+        .back-btn .icon-back {
+            margin-right: 5px;
+            font-size: 1.2rem;
+        }
+
+        .share-btn {
+            background-color: transparent;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .share-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .vehicle-detail {
+            padding: var(--section-padding);
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .main-photo {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .thumbnail {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .thumbnail.active {
+            border-color: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .detail-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 10px;
         }
 
         /* 新增/編輯車輛表單 */
@@ -939,7 +1146,11 @@
 
     <!-- 搜尋與篩選區域 -->
     <div class="search-bar">
-        <input type="text" class="search-input" placeholder="搜尋車輛、品牌、型號...">
+        <div class="search-input-container">
+            <span class="search-icon icon-search"></span>
+            <input type="text" class="search-input" placeholder="搜尋車輛、品牌、型號...">
+            <span class="search-clear" id="searchClear" style="display: none;">✕</span>
+        </div>
         <div class="filter-toggle" id="filterToggle">
             <span class="icon-filter"></span> 篩選與排序
         </div>
@@ -1013,9 +1224,14 @@
             </div>
         </div>
 
+        <div class="filter-summary" id="filterSummary">
+            <div class="active-filters">已選擇: <span id="activeFiltersCount">0</span> 個條件</div>
+        </div>
+        
         <div class="filter-actions">
             <button class="btn" id="resetFilters">重置</button>
             <button class="btn btn-primary" id="applyFilters">套用篩選</button>
+            <button class="btn btn-accent" id="closeFilters">關閉</button>
         </div>
     </div>
 
@@ -1024,6 +1240,10 @@
 
     <!-- 車輛詳情頁 -->
     <div class="vehicle-detail" id="vehicleDetail">
+        <div class="detail-nav">
+            <button class="back-btn" id="backToList"><span class="icon-back"></span> 返回</button>
+            <button class="share-btn" id="shareVehicle"><span class="icon-share"></span></button>
+        </div>
         <div class="detail-header">
             <div class="detail-price">$3,880,000</div>
             <div class="detail-title">2021 三菱 FUSO 10.5噸 棉被式冷凍車</div>
@@ -1732,12 +1952,13 @@
             selectedVehicle = vehicle;
             
             // 更新詳情頁內容
-            document.querySelector('.detail-price').textContent = `${vehicle.price.toLocaleString('zh-TW')}`;
+            document.querySelector('.detail-price').textContent = `$${vehicle.price.toLocaleString('zh-TW')}`;
             document.querySelector('.detail-title').textContent = vehicle.title;
             
             // 更新主圖
             const mainPhoto = document.getElementById('mainPhoto');
             mainPhoto.src = vehicle.photos[0];
+            mainPhoto.alt = vehicle.title;
             
             // 更新縮圖
             const thumbnails = document.getElementById('thumbnails');
@@ -1767,8 +1988,8 @@
             specItems[2].querySelector('.spec-value').textContent = `${vehicle.mileage.toLocaleString('zh-TW')} 公里`;
             specItems[3].querySelector('.spec-value').textContent = `${vehicle.weight} 噸`;
             specItems[4].querySelector('.spec-value').textContent = `${vehicle.length} 公尺`;
-            specItems[5].querySelector('.spec-value').textContent = vehicle.horsepower ? `${vehicle.horsepower}匹` : '未提供';
-            specItems[6].querySelector('.spec-value').textContent = vehicle.category || '未分類';
+            specItems[5].querySelector('.spec-value').textContent = vehicle.engine || '未提供';
+            specItems[6].querySelector('.spec-value').textContent = getConditionText(vehicle.condition);
             
             // 更新描述
             document.querySelector('.detail-section:nth-of-type(2) p').textContent = vehicle.description;
@@ -1776,19 +1997,35 @@
             // 更新特殊配備
             const featuresList = document.querySelector('.detail-section:nth-of-type(3) ul');
             featuresList.innerHTML = '';
-            vehicle.features.forEach(feature => {
-                const li = document.createElement('li');
-                li.textContent = feature;
-                featuresList.appendChild(li);
-            });
+            
+            if (vehicle.features && vehicle.features.length > 0) {
+                vehicle.features.forEach(feature => {
+                    const li = document.createElement('li');
+                    li.textContent = feature;
+                    featuresList.appendChild(li);
+                });
+            } else {
+                featuresList.innerHTML = '<li>無特殊配備</li>';
+            }
             
             // 更新聯絡人資訊
             document.querySelector('.contact-section p:nth-of-type(1)').textContent = `${vehicle.seller.name} 專員`;
             document.querySelector('.contact-section p:nth-of-type(2)').textContent = `專長：${vehicle.seller.specialty}`;
             document.querySelector('.contact-section a').href = `tel:${vehicle.seller.phone}`;
             
+            // 如果是在開發模式，增加瀏覽次數
+            if (mockVehicles) {
+                const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+                if (vehicleIndex !== -1) {
+                    mockVehicles[vehicleIndex].views = (mockVehicles[vehicleIndex].views || 0) + 1;
+                }
+            }
+            
             // 切換到詳情頁
             switchPage('detail');
+            
+            // 滾動到頂部
+            window.scrollTo(0, 0);
         }
 
         // 取得車況等級文字描述
@@ -1827,7 +2064,7 @@
                 case 'add':
                     document.getElementById('vehicleForm').style.display = 'block';
                     document.querySelector('.header h1').textContent = '新增車輛';
-                    generateYearOptions(); // 添加這行
+                    generateYearOptions();
                     break;
                 case 'auth':
                     document.getElementById('authContainer').style.display = 'flex';
@@ -1838,6 +2075,9 @@
                     document.querySelector('.header h1').textContent = '個人資料';
                     break;
             }
+            
+            // 確保頁面滾動到頂部
+            window.scrollTo(0, 0);
             
             // 更新底部導航狀態
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -1857,7 +2097,52 @@
             // 篩選面板切換
             document.getElementById('filterToggle').addEventListener('click', () => {
                 const filterPanel = document.getElementById('filterPanel');
-                filterPanel.style.display = filterPanel.style.display === 'none' ? 'block' : 'none';
+                filterPanel.style.display = 'block';
+                document.body.style.overflow = 'hidden'; // 防止背景滾動
+            });
+
+            // 關閉篩選面板
+            document.getElementById('closeFilters').addEventListener('click', () => {
+                document.getElementById('filterPanel').style.display = 'none';
+                document.body.style.overflow = ''; // 恢復背景滾動
+            });
+
+            // 點擊篩選項時更新選擇計數
+            const updateFilterCount = () => {
+                const brandCount = document.querySelectorAll('#brandFilters .filter-chip.active').length;
+                const weightCount = document.querySelectorAll('#weightFilters .filter-chip.active').length;
+                const conditionCount = document.querySelectorAll('#conditionFilters .filter-chip.active').length;
+                
+                let count = brandCount + weightCount + conditionCount;
+                
+                // 檢查是否設置了價格範圍
+                if (document.getElementById('minPrice').value || document.getElementById('maxPrice').value) {
+                    count++;
+                }
+                
+                // 檢查是否設置了年份範圍
+                if (document.getElementById('minYear').value || document.getElementById('maxYear').value) {
+                    count++;
+                }
+                
+                document.getElementById('activeFiltersCount').textContent = count;
+            };
+
+            // 所有篩選項的點擊事件添加計數更新
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.addEventListener('click', updateFilterCount);
+            });
+
+            // 價格和年份輸入框的事件
+            document.getElementById('minPrice').addEventListener('input', updateFilterCount);
+            document.getElementById('maxPrice').addEventListener('input', updateFilterCount);
+            document.getElementById('minYear').addEventListener('input', updateFilterCount);
+            document.getElementById('maxYear').addEventListener('input', updateFilterCount);
+
+            // 重置篩選條件時也更新計數
+            document.getElementById('resetFilters').addEventListener('click', () => {
+                resetFilters();
+                updateFilterCount();
             });
             
             // 應用篩選條件
@@ -2016,6 +2301,31 @@
                     photoInput.dispatchEvent(event);
                 }
             });
+
+            // 車輛詳情頁 - 返回按鈕
+            document.getElementById('backToList').addEventListener('click', () => {
+                switchPage('list');
+            });
+
+            // 車輛詳情頁 - 分享按鈕
+            document.getElementById('shareVehicle').addEventListener('click', () => {
+                if (selectedVehicle) {
+                    if (navigator.share) {
+                        navigator.share({
+                            title: selectedVehicle.title,
+                            text: `查看這輛${selectedVehicle.title}，價格：$${selectedVehicle.price.toLocaleString('zh-TW')}`,
+                            url: window.location.href
+                        })
+                        .catch(error => {
+                            showToast('分享功能暫不可用');
+                            console.error('分享失敗:', error);
+                        });
+                    } else {
+                        // 若不支援原生分享功能，顯示訊息
+                        showToast('您的瀏覽器不支援分享功能');
+                    }
+                }
+            });
             
             // 登入/註冊切換
             document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -2044,6 +2354,40 @@
             // 關閉功能提示
             document.getElementById('featureClose').addEventListener('click', () => {
                 document.getElementById('featureComing').style.display = 'none';
+            });
+
+            // 搜尋框清除按鈕
+            const searchInput = document.querySelector('.search-input');
+            const searchClear = document.getElementById('searchClear');
+
+            searchInput.addEventListener('input', (e) => {
+                const searchText = e.target.value.toLowerCase();
+                // 顯示或隱藏清除按鈕
+                searchClear.style.display = searchText.length > 0 ? 'block' : 'none';
+                
+                if (searchText.length < 2) {
+                    renderVehicleList();
+                    return;
+                }
+                
+                const filtered = mockVehicles.filter(vehicle => {
+                    return (
+                        vehicle.title.toLowerCase().includes(searchText) ||
+                        vehicle.brand.toLowerCase().includes(searchText) ||
+                        vehicle.model.toLowerCase().includes(searchText) ||
+                        vehicle.description.toLowerCase().includes(searchText) ||
+                        vehicle.features.some(f => f.toLowerCase().includes(searchText))
+                    );
+                });
+                
+                renderVehicleList(filtered);
+            });
+
+            searchClear.addEventListener('click', () => {
+                searchInput.value = '';
+                searchClear.style.display = 'none';
+                renderVehicleList();
+                searchInput.focus();
             });
         }
 
