@@ -3219,11 +3219,6 @@
             }
         }
 
-        // 然後在保存時過濾已刪除的照片
-        const existingPhotoUrls = uploadedPhotos
-            .filter(photo => !photo.deleted && !photo.file && photo.url && !photo.url.startsWith('blob:'))
-            .map(photo => photo.url);
-
         // 處理登入
         function handleLogin() {
             // 開發階段已預設為管理員登入狀態
