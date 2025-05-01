@@ -1658,17 +1658,20 @@
 
         // 初始化應用程式
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始化 Firebase (僅在開發階段簡化)
+            // 初始化 Firebase
             try {
                 // 初始化 Firebase 應用
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
                 }
                 
-                // 在開發階段，為了簡化，我們僅初始化變數但不實際使用 Firebase 服務
-                db = {};
-                auth = {};
-                storage = {};
+                // 初始化 Firebase 服務
+                db = firebase.firestore();
+                auth = firebase.auth();
+                storage = firebase.storage();
+                
+                // 啟用離線功能
+                enableOfflineCapabilities();
                 
                 // 設置開發階段的模擬管理員帳戶
                 currentUser = {
@@ -1680,25 +1683,53 @@
                     specialty: '系統管理'
                 };
                 
-                console.log('Firebase 初始化成功，開發模式已啟動');
+                console.log('Firebase 初始化成功');
+                
+                // 檢查是否有真實數據
+                fetchVehicles().then(vehicles => {
+                    if (vehicles && vehicles.length > 0) {
+                        // 使用從Firebase獲取的車輛數據
+                        mockVehicles = vehicles;
+                        console.log('從Firebase獲取了', vehicles.length, '輛車');
+                    } else {
+                        // 如果沒有數據，載入模擬數據
+                        loadMockData();
+                        console.log('使用模擬數據');
+                    }
+                    
+                    // 渲染車輛列表
+                    renderVehicleList();
+                }).catch(error => {
+                    console.error('獲取車輛數據失敗:', error);
+                    // 可以增加更詳細的錯誤處理
+                    if (error.code === 'permission-denied') {
+                        showToast('權限不足，無法讀取車輛數據');
+                    } else if (error.code === 'unavailable') {
+                        showToast('網路連接不穩定，請稍後再試');
+                    } else {
+                        showToast('讀取數據失敗: ' + error.message);
+                    }
+                    return Promise.reject(error);
+                });
+                
+                // 生成年份下拉選單選項
+                generateYearOptions();
+                
+                // 設置事件監聽器
+                setupEventListeners();
+                
+                // 更新界面以反映已登入狀態
+                checkAuthState();
+                
             } catch (error) {
                 console.error('Firebase 初始化失敗:', error);
+                // 初始化失敗時載入模擬數據
+                loadMockData();
+                generateYearOptions();
+                renderVehicleList();
+                setupEventListeners();
+                checkAuthState();
             }
-            
-            // 載入模擬數據
-            loadMockData();
-
-            // 生成年份下拉選單選項
-            generateYearOptions();
-            
-            // 渲染車輛列表
-            renderVehicleList();
-            
-            // 設置事件監聽器
-            setupEventListeners();
-            
-            // 更新界面以反映已登入狀態
-            checkAuthState();
         });
 
         // 載入模擬數據（正式版會從Firebase讀取）
@@ -1946,6 +1977,7 @@
 
         // 顯示車輛詳情
         function showVehicleDetail(vehicleId) {
+            // 先查找本地緩存數據
             const vehicle = mockVehicles.find(v => v.id === vehicleId);
             if (!vehicle) return;
             
@@ -1957,14 +1989,14 @@
             
             // 更新主圖
             const mainPhoto = document.getElementById('mainPhoto');
-            mainPhoto.src = vehicle.photos[0];
+            mainPhoto.src = vehicle.photos && vehicle.photos.length > 0 ? vehicle.photos[0] : '/api/placeholder/400/320';
             mainPhoto.alt = vehicle.title;
             
             // 更新縮圖
             const thumbnails = document.getElementById('thumbnails');
             thumbnails.innerHTML = '';
             
-            if (vehicle.photos.length > 0) {
+            if (vehicle.photos && vehicle.photos.length > 0) {
                 vehicle.photos.forEach((photo, index) => {
                     const thumb = document.createElement('img');
                     thumb.src = photo;
@@ -1983,16 +2015,16 @@
             
             // 更新規格
             const specItems = document.querySelectorAll('.spec-item');
-            specItems[0].querySelector('.spec-value').textContent = `${vehicle.brand} ${vehicle.model}`;
+            specItems[0].querySelector('.spec-value').textContent = `${vehicle.brand} ${vehicle.model || ''}`;
             specItems[1].querySelector('.spec-value').textContent = `${vehicle.year}年`;
             specItems[2].querySelector('.spec-value').textContent = `${vehicle.mileage.toLocaleString('zh-TW')} 公里`;
             specItems[3].querySelector('.spec-value').textContent = `${vehicle.weight} 噸`;
-            specItems[4].querySelector('.spec-value').textContent = `${vehicle.length} 公尺`;
-            specItems[5].querySelector('.spec-value').textContent = vehicle.engine || '未提供';
+            specItems[4].querySelector('.spec-value').textContent = `${vehicle.length || 0} 公尺`;
+            specItems[5].querySelector('.spec-value').textContent = vehicle.engine || vehicle.horsepower ? `${vehicle.horsepower}匹馬力` : '未提供';
             specItems[6].querySelector('.spec-value').textContent = getConditionText(vehicle.condition);
             
             // 更新描述
-            document.querySelector('.detail-section:nth-of-type(2) p').textContent = vehicle.description;
+            document.querySelector('.detail-section:nth-of-type(2) p').textContent = vehicle.description || '無描述';
             
             // 更新特殊配備
             const featuresList = document.querySelector('.detail-section:nth-of-type(3) ul');
@@ -2009,16 +2041,31 @@
             }
             
             // 更新聯絡人資訊
-            document.querySelector('.contact-section p:nth-of-type(1)').textContent = `${vehicle.seller.name} 專員`;
-            document.querySelector('.contact-section p:nth-of-type(2)').textContent = `專長：${vehicle.seller.specialty}`;
-            document.querySelector('.contact-section a').href = `tel:${vehicle.seller.phone}`;
+            if (vehicle.seller) {
+                document.querySelector('.contact-section p:nth-of-type(1)').textContent = `${vehicle.seller.name || '未知'} 專員`;
+                document.querySelector('.contact-section p:nth-of-type(2)').textContent = `專長：${vehicle.seller.specialty || '一般車輛'}`;
+                document.querySelector('.contact-section a').href = `tel:${vehicle.seller.phone || ''}`;
+            }
             
-            // 如果是在開發模式，增加瀏覽次數
-            if (mockVehicles) {
-                const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
-                if (vehicleIndex !== -1) {
-                    mockVehicles[vehicleIndex].views = (mockVehicles[vehicleIndex].views || 0) + 1;
+            // 更新Firebase中的瀏覽次數
+            try {
+                if (db && db.collection) {
+                    // 先在本地更新
+                    const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+                    if (vehicleIndex !== -1) {
+                        mockVehicles[vehicleIndex].views = (mockVehicles[vehicleIndex].views || 0) + 1;
+                    }
+                    
+                    // 然後更新Firebase
+                    const vehicleRef = db.collection('vehicles').doc(vehicleId);
+                    vehicleRef.update({
+                        views: firebase.firestore.FieldValue.increment(1)
+                    }).catch(error => {
+                        console.warn('更新瀏覽次數失敗:', error);
+                    });
                 }
+            } catch (error) {
+                console.warn('更新瀏覽次數時出現錯誤:', error);
             }
             
             // 切換到詳情頁
@@ -2412,6 +2459,7 @@
         }
 
         // 應用篩選條件
+        // 應用篩選條件 - 修改這個函數
         function applyFilters() {
             // 收集價格範圍
             filters.minPrice = document.getElementById('minPrice').value ? parseFloat(document.getElementById('minPrice').value) : null;
@@ -2511,6 +2559,120 @@
             showToast(`已找到 ${filtered.length} 輛符合條件的車輛`);
         }
 
+        // 執行複合搜尋和篩選
+        function searchVehicles(filters) {
+            // 顯示載入中通知
+            showToast('正在篩選數據...');
+            
+            try {
+                let query = db.collection('vehicles');
+                
+                // 添加基本查詢條件
+                if (filters.minPrice) {
+                    query = query.where('price', '>=', filters.minPrice);
+                }
+                
+                // Firebase 限制：不能在單一查詢中有多個範圍條件
+                // 所以我們只能使用一個範圍過濾，其餘的在客戶端過濾
+                if (filters.minYear) {
+                    query = query.where('year', '>=', filters.minYear);
+                }
+                
+                // 如果有品牌篩選
+                if (filters.brands && filters.brands.length > 0 && filters.brands.length <= 10) {
+                    query = query.where('brand', 'in', filters.brands); // Firebase 限制 in 最多10個值
+                }
+                
+                // 根據排序選項添加排序
+                switch(filters.sortBy) {
+                    case 'newest':
+                        query = query.orderBy('createdAt', 'desc');
+                        break;
+                    case 'price-low':
+                        query = query.orderBy('price', 'asc');
+                        break;
+                    case 'price-high':
+                        query = query.orderBy('price', 'desc');
+                        break;
+                    case 'year-new':
+                        query = query.orderBy('year', 'desc');
+                        break;
+                    default:
+                        query = query.orderBy('createdAt', 'desc');
+                }
+                
+                // 執行查詢
+                query.get().then(querySnapshot => {
+                    let results = [];
+                    
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // 處理時間戳
+                        const createdAt = data.createdAt ? 
+                            (data.createdAt.toDate ? data.createdAt.toDate().getTime() : data.createdAt) : 
+                            new Date().getTime();
+                        
+                        results.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: createdAt
+                        });
+                    });
+                    
+                    // 客戶端其他過濾條件
+                    if (filters.maxPrice) {
+                        results = results.filter(v => v.price <= filters.maxPrice);
+                    }
+                    
+                    if (filters.maxYear) {
+                        results = results.filter(v => v.year <= filters.maxYear);
+                    }
+                    
+                    if (filters.conditions && filters.conditions.length > 0) {
+                        results = results.filter(v => filters.conditions.includes(v.condition));
+                    }
+                    
+                    if (filters.weights && filters.weights.length > 0) {
+                        results = results.filter(v => {
+                            if (filters.weights.includes(3.5) && v.weight <= 3.5) return true;
+                            if (filters.weights.includes(5) && v.weight > 3.5 && v.weight <= 5) return true;
+                            if (filters.weights.includes(8) && v.weight > 5 && v.weight <= 8) return true;
+                            if (filters.weights.includes(10) && v.weight > 8 && v.weight <= 10) return true;
+                            if (filters.weights.includes(15) && v.weight > 10) return true;
+                            return false;
+                        });
+                    }
+                    
+                    // 如果品牌過多導致沒用 'in' 查詢，需要在客戶端過濾
+                    if (filters.brands && filters.brands.length > 10) {
+                        results = results.filter(v => filters.brands.includes(v.brand));
+                    }
+                    
+                    // 渲染結果
+                    renderVehicleList(results);
+                    
+                    // 顯示結果數量
+                    showToast(`已找到 ${results.length} 輛符合條件的車輛`);
+                    
+                    // 隱藏篩選面板
+                    document.getElementById('filterPanel').style.display = 'none';
+                    
+                }).catch(error => {
+                    console.error('查詢失敗:', error);
+                    showToast('查詢失敗: ' + error.message);
+                    
+                    // 使用本地過濾作為備份
+                    applyFilters();
+                });
+            } catch (error) {
+                console.error('執行查詢時出錯:', error);
+                showToast('查詢出錯: ' + error.message);
+                
+                // 使用本地過濾作為備份
+                applyFilters();
+            }
+        }
+
         // 重置篩選條件
         function resetFilters() {
             // 清除輸入值
@@ -2595,95 +2757,151 @@
                 .split('\n')
                 .map(line => line.trim())
                 .filter(line => line.length > 0);
-            
-            // 獲取照片資訊
-            let photos = [];
-            
-            // 如果有通過上傳功能添加的照片，使用這些照片
-            if (uploadedPhotos.length > 0) {
-                photos = uploadedPhotos.map(photo => photo.url);
-            } else {
-                // 作為備份，如果有通過其他方式添加的照片，獲取它們
-                const photoElements = document.querySelectorAll('#photoPreviewArea .upload-preview img');
-                photos = Array.from(photoElements).map(img => img.src);
-            }
-            
-            // 如果沒有照片，使用佔位圖
-            if (photos.length === 0) {
-                photos.push('/api/placeholder/400/320');
-            }
+
+            // 顯示保存中提示
+            showToast('儲存中，請稍候...');
             
             // 檢查是否為編輯模式
             const saveMode = document.getElementById('saveVehicle').getAttribute('data-mode');
             const vehicleId = document.getElementById('saveVehicle').getAttribute('data-id');
             
-            // 顯示保存中提示
-            showToast('儲存中，請稍候...');
+            // 準備車輛資料物件
+            const vehicleData = {
+                title,
+                price,
+                brand,
+                model,
+                year,
+                weight,
+                length,
+                mileage,
+                horsepower,
+                category,
+                description,
+                features,
+                status,
+                seller: {
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    phone: currentUser.phone,
+                    email: currentUser.email,
+                    specialty: currentUser.specialty || '一般車輛'
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // 處理照片
+            let photosForUpload = [];
             
-            // 在saveVehicle函數中，修改這部分代碼
-            if (saveMode === 'edit' && vehicleId) {
-                // 編輯現有車輛
-                const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
-                
-                if (vehicleIndex !== -1) {
-                    // 更新車輛數據
-                    mockVehicles[vehicleIndex] = {
-                        ...mockVehicles[vehicleIndex],
-                        title,
-                        price,
-                        brand,
-                        model,
-                        year,
-                        weight,
-                        length,
-                        mileage,
-                        horsepower, // 替換掉 engine
-                        category,   // 添加 category
-                        description,
-                        features,
-                        status,
-                        photos,
-                        updatedAt: new Date().getTime()
-                    };
-                    
-                    showToast('車輛資訊已更新');
-                } else {
-                    showToast('更新失敗：找不到車輛');
-                    return;
-                }
-            } else {
-                // 新增車輛
-                const newVehicle = {
-                    id: 'v' + new Date().getTime(),
-                    title,
-                    price,
-                    brand,
-                    model,
-                    year,
-                    weight,
-                    length,
-                    mileage,
-                    horsepower, // 替換掉 engine
-                    category,   // 添加 category
-                    description,
-                    features,
-                    status,
-                    photos,
-                    seller: {
-                        id: currentUser.id,
-                        name: currentUser.name,
-                        phone: currentUser.phone,
-                        email: currentUser.email,
-                        specialty: currentUser.specialty || '一般車輛'
-                    },
-                    createdAt: new Date().getTime(),
-                    views: 0
-                };
-                
-                // 添加到模擬數據
-                mockVehicles.unshift(newVehicle);
-                showToast('車輛資訊已儲存');
+            if (uploadedPhotos.length > 0) {
+                // 只選擇有實際文件的照片上傳
+                photosForUpload = uploadedPhotos.filter(photo => photo.file).map(photo => photo.file);
             }
+
+            // 使用現有URL的照片
+            let existingPhotoUrls = [];
+            if (uploadedPhotos.length > 0) {
+                existingPhotoUrls = uploadedPhotos
+                    .filter(photo => !photo.file && photo.url && !photo.url.startsWith('blob:'))
+                    .map(photo => photo.url);
+            }
+
+            // 如果沒有照片，使用佔位圖
+            if (photosForUpload.length === 0 && existingPhotoUrls.length === 0) {
+                existingPhotoUrls.push('https://via.placeholder.com/400x320');
+            }
+            
+            try {
+                if (saveMode === 'edit' && vehicleId) {
+                    // 編輯現有車輛
+                    let updatePromise;
+                    
+                    if (photosForUpload.length > 0) {
+                        // 有新照片需要上傳
+                        updatePromise = uploadPhotosAndUpdateVehicle(vehicleId, photosForUpload, vehicleData, existingPhotoUrls);
+                    } else {
+                        // 沒有新照片，只更新資料
+                        vehicleData.photos = existingPhotoUrls;
+                        updatePromise = db.collection('vehicles').doc(vehicleId).update(vehicleData);
+                    }
+                    
+                    updatePromise.then(() => {
+                        showToast('車輛資訊已更新');
+                        
+                        // 更新本地數據
+                        const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+                        if (vehicleIndex !== -1) {
+                            mockVehicles[vehicleIndex] = {
+                                ...mockVehicles[vehicleIndex],
+                                ...vehicleData,
+                                photos: existingPhotoUrls,
+                                id: vehicleId
+                            };
+                        }
+                        
+                        // 重置表單
+                        resetVehicleForm();
+                        
+                        // 重新渲染車輛列表和更新個人資料頁
+                        renderVehicleList();
+                        checkAuthState();
+                        
+                        // 回到列表頁
+                        switchPage('list');
+                    }).catch(error => {
+                        console.error('更新車輛失敗:', error);
+                        showToast('更新失敗: ' + error.message);
+                    });
+                } else {
+                    // 新增車輛
+                    // 先創建文檔
+                    const newVehicleRef = db.collection('vehicles').doc();
+                    const newVehicleId = newVehicleRef.id;
+                    
+                    // 添加創建時間
+                    vehicleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    vehicleData.views = 0;
+                    
+                    // 如果有照片需上傳
+                    if (photosForUpload.length > 0) {
+                        // 上傳照片並保存車輛
+                        uploadPhotosAndSaveNewVehicle(newVehicleId, photosForUpload, vehicleData, existingPhotoUrls).then(() => {
+                            finishSaveVehicle(newVehicleId, vehicleData, [...existingPhotoUrls]);
+                        }).catch(error => {
+                            console.error('上傳照片失敗:', error);
+                            showToast('上傳照片失敗: ' + error.message);
+                        });
+                    } else {
+                        // 無需上傳照片，直接保存
+                        vehicleData.photos = existingPhotoUrls;
+                        
+                        newVehicleRef.set(vehicleData).then(() => {
+                            finishSaveVehicle(newVehicleId, vehicleData, existingPhotoUrls);
+                        }).catch(error => {
+                            console.error('保存車輛失敗:', error);
+                            showToast('保存失敗: ' + error.message);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('操作失敗:', error);
+                showToast('操作失敗: ' + error.message);
+            }
+        }
+
+        // 完成車輛保存後的操作
+        function finishSaveVehicle(vehicleId, vehicleData, photoUrls) {
+            showToast('車輛資訊已儲存');
+            
+            // 添加到本地數據
+            const newVehicle = {
+                ...vehicleData,
+                id: vehicleId,
+                photos: photoUrls,
+                createdAt: new Date().getTime()
+            };
+            
+            mockVehicles.unshift(newVehicle);
             
             // 重置表單
             resetVehicleForm();
@@ -2694,6 +2912,74 @@
             
             // 回到列表頁
             switchPage('list');
+        }
+
+        // 上傳照片並保存新車輛
+        function uploadPhotosAndSaveNewVehicle(vehicleId, photoFiles, vehicleData, existingUrls = []) {
+            return new Promise((resolve, reject) => {
+                const uploadTasks = [];
+                const photoUrls = [...existingUrls];
+                
+                // 為每張照片創建上傳任務
+                photoFiles.forEach((file, index) => {
+                    const photoRef = storage.ref(`vehicles/${vehicleId}/photo_${index}_${new Date().getTime()}`);
+                    
+                    const uploadTask = photoRef.put(file).then(() => {
+                        return photoRef.getDownloadURL();
+                    }).then(url => {
+                        photoUrls.push(url);
+                    });
+                    
+                    uploadTasks.push(uploadTask);
+                });
+                
+                // 等待所有照片上傳完成
+                Promise.all(uploadTasks).then(() => {
+                    // 更新車輛數據，添加照片URL
+                    vehicleData.photos = photoUrls;
+                    
+                    // 保存車輛數據
+                    return db.collection('vehicles').doc(vehicleId).set(vehicleData);
+                }).then(() => {
+                    resolve(photoUrls);
+                }).catch(error => {
+                    reject(error);
+                });
+            });
+        }
+
+        // 上傳照片並更新現有車輛
+        function uploadPhotosAndUpdateVehicle(vehicleId, photoFiles, vehicleData, existingUrls = []) {
+            return new Promise((resolve, reject) => {
+                const uploadTasks = [];
+                const photoUrls = [...existingUrls];
+                
+                // 為每張照片創建上傳任務
+                photoFiles.forEach((file, index) => {
+                    const photoRef = storage.ref(`vehicles/${vehicleId}/photo_${index}_${new Date().getTime()}`);
+                    
+                    const uploadTask = photoRef.put(file).then(() => {
+                        return photoRef.getDownloadURL();
+                    }).then(url => {
+                        photoUrls.push(url);
+                    });
+                    
+                    uploadTasks.push(uploadTask);
+                });
+                
+                // 等待所有照片上傳完成
+                Promise.all(uploadTasks).then(() => {
+                    // 更新車輛數據，添加照片URL
+                    vehicleData.photos = photoUrls;
+                    
+                    // 更新車輛數據
+                    return db.collection('vehicles').doc(vehicleId).update(vehicleData);
+                }).then(() => {
+                    resolve(photoUrls);
+                }).catch(error => {
+                    reject(error);
+                });
+            });
         }
 
         // 驗證表單欄位
@@ -2914,24 +3200,29 @@
         }
 
         // 移除照片
+        // 修改removePhoto函數，添加標記功能
         function removePhoto(index) {
-            // 從數組中移除
             if (index >= 0 && index < uploadedPhotos.length) {
-                // 釋放 URL 對象
-                URL.revokeObjectURL(uploadedPhotos[index].url);
+                // 如果是blob URL，需要釋放
+                if (uploadedPhotos[index].url && uploadedPhotos[index].url.startsWith('blob:')) {
+                    URL.revokeObjectURL(uploadedPhotos[index].url);
+                }
                 
-                // 從數組中移除
-                uploadedPhotos.splice(index, 1);
+                // 將被刪除的照片標記為已刪除，而不是實際從數組中移除
+                uploadedPhotos[index].deleted = true;
                 
-                // 重新排序預覽區域中的索引
-                const previews = document.querySelectorAll('#photoPreviewArea .upload-preview');
-                previews.forEach((preview, i) => {
-                    if (i >= index) {
-                        preview.setAttribute('data-index', i);
-                    }
-                });
+                // 從視圖中移除
+                const previewToRemove = document.querySelector(`.upload-preview[data-index="${index}"]`);
+                if (previewToRemove) {
+                    previewToRemove.remove();
+                }
             }
         }
+
+        // 然後在保存時過濾已刪除的照片
+        const existingPhotoUrls = uploadedPhotos
+            .filter(photo => !photo.deleted && !photo.file && photo.url && !photo.url.startsWith('blob:'))
+            .map(photo => photo.url);
 
         // 處理登入
         function handleLogin() {
@@ -3167,19 +3458,39 @@
 
         // 獲取車輛列表
         function fetchVehicles() {
-            return db.collection('vehicles')
-                .orderBy('createdAt', 'desc')
-                .get()
-                .then((querySnapshot) => {
-                    const vehicles = [];
-                    querySnapshot.forEach((doc) => {
-                        vehicles.push({
-                            id: doc.id,
-                            ...doc.data()
+            try {
+                return db.collection('vehicles')
+                    .orderBy('createdAt', 'desc')
+                    .get()
+                    .then((querySnapshot) => {
+                        const vehicles = [];
+                        querySnapshot.forEach((doc) => {
+                            // 獲取數據
+                            const data = doc.data();
+                            
+                            // 處理時間戳記
+                            const createdAt = data.createdAt ? 
+                                (data.createdAt.toDate ? data.createdAt.toDate().getTime() : data.createdAt) : 
+                                new Date().getTime();
+                            
+                            const updatedAt = data.updatedAt ? 
+                                (data.updatedAt.toDate ? data.updatedAt.toDate().getTime() : data.updatedAt) : 
+                                createdAt;
+                            
+                            // 構建車輛對象
+                            vehicles.push({
+                                id: doc.id,
+                                ...data,
+                                createdAt: createdAt,
+                                updatedAt: updatedAt
+                            });
                         });
+                        return vehicles;
                     });
-                    return vehicles;
-                });
+            } catch (error) {
+                console.error('獲取車輛列表錯誤:', error);
+                return Promise.reject(error);
+            }
         }
 
         // 儲存新車輛
@@ -3419,21 +3730,40 @@
 
         // 刪除車輛
         function deleteVehicle(vehicleId) {
-            // 在模擬數據中找到並刪除該車輛
-            const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+            showToast('正在刪除...');
             
-            if (vehicleIndex !== -1) {
-                mockVehicles.splice(vehicleIndex, 1);
-                
-                // 更新車輛列表和個人資料頁
-                renderVehicleList();
-                checkAuthState();
-                
-                // 顯示通知
-                showToast('車輛已成功刪除');
-            } else {
-                showToast('刪除失敗：找不到車輛');
-            }
+            // 從Firebase刪除
+            db.collection('vehicles').doc(vehicleId).delete()
+                .then(() => {
+                    // 在本地數據中找到並刪除該車輛
+                    const vehicleIndex = mockVehicles.findIndex(v => v.id === vehicleId);
+                    
+                    if (vehicleIndex !== -1) {
+                        mockVehicles.splice(vehicleIndex, 1);
+                    }
+                    
+                    // 嘗試刪除相關照片
+                    const photoStorageRef = storage.ref(`vehicles/${vehicleId}`);
+                    if (photoStorageRef) {
+                        photoStorageRef.listAll().then(result => {
+                            const deletePromises = result.items.map(itemRef => itemRef.delete());
+                            return Promise.all(deletePromises);
+                        }).catch(error => {
+                            console.warn('刪除照片時出錯:', error);
+                        });
+                    }
+                    
+                    // 更新車輛列表和個人資料頁
+                    renderVehicleList();
+                    checkAuthState();
+                    
+                    // 顯示通知
+                    showToast('車輛已成功刪除');
+                })
+                .catch(error => {
+                    console.error('刪除車輛失敗:', error);
+                    showToast('刪除失敗：' + error.message);
+                });
         }
 
     </script>
