@@ -390,6 +390,9 @@
             async init() {
                 this.initEventListeners();
                 
+                // 等待認證狀態初始化完成
+                await authManager.waitForAuth();
+                
                 // 監聽認證狀態變化
                 authManager.addAuthListener(this.handleAuthStateChange.bind(this));
                 
