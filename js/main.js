@@ -22,6 +22,10 @@ class VehicleApp {
   async init() {
     this.initEventListeners();
     this.initBrandFilter();
+    
+    // 等待認證狀態初始化完成
+    await authManager.waitForAuth();
+    
     await this.loadVehicles();
     this.initUrlParams();
   }
