@@ -93,6 +93,76 @@ export function createImagePreview(file) {
   });
 }
 
+// 壓縮圖片
+export function compressImage(file, maxWidth = 1200, maxHeight = 800, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // 計算新的尺寸
+      let { width, height } = img;
+      
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // 繪製並壓縮圖片
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            // 創建新的 File 對象
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            reject(new Error('圖片壓縮失敗'));
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    
+    img.onerror = () => reject(new Error('圖片載入失敗'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// 批次壓縮圖片
+export async function compressImages(files, maxWidth = 1200, maxHeight = 800, quality = 0.8) {
+  const compressedFiles = [];
+  
+  for (const file of files) {
+    try {
+      const compressedFile = await compressImage(file, maxWidth, maxHeight, quality);
+      compressedFiles.push(compressedFile);
+    } catch (error) {
+      console.error('壓縮圖片失敗:', file.name, error);
+      // 如果壓縮失敗，使用原檔案
+      compressedFiles.push(file);
+    }
+  }
+  
+  return compressedFiles;
+}
+
 // 防抖函數
 export function debounce(func, wait) {
   let timeout;
