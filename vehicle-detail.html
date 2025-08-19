@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>車輛詳細資訊 - 大貨車銷售平台</title>
+    
+    <!-- 網站圖標 -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="icons/icon-256.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- 樣式表 -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    
+    <style>
+        /* 車輛詳細頁面專用樣式 */
+        .detail-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--mobile-padding);
+        }
+        
+        .vehicle-gallery {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .main-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .thumbnail-gallery {
+            display: flex;
+            gap: var(--spacing-sm);
+            overflow-x: auto;
+            padding: var(--spacing-xs) 0;
+        }
+        
+        .thumbnail {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .thumbnail.active,
+        .thumbnail:hover {
+            border-color: var(--accent-color);
+        }
+        
+        .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+        
+        .vehicle-title-section h1 {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .vehicle-price-large {
+            font-size: 28px;
+            font-weight: var(--font-weight-bold);
+            color: var(--accent-color);
+        }
+        
+        .vehicle-status {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .status-available {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-sold {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .detail-section {
+            background: var(--primary-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+        }
+        
+        .detail-section h3 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: var(--spacing-sm);
+        }
+        
+        .detail-list {
+            list-style: none;
+        }
+        
+        .detail-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .detail-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-list .label {
+            font-weight: var(--font-weight-medium);
+            color: var(--secondary-text);
+        }
+        
+        .detail-list .value {
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .description-section {
+            background: var(--primary-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .description-section h3 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .description-text {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .contact-section {
+            background: var(--primary-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .contact-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        
+        .back-button {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .owner-actions {
+            background: #fff9c4;
+            border: 1px solid #facc15;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .owner-actions h3 {
+            color: #92400e;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .loading-detail {
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+        
+        .error-detail {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--secondary-text);
+        }
+        
+        /* 手機優化 */
+        @media (max-width: 767px) {
+            .detail-container {
+                padding: var(--spacing-md);
+            }
+            
+            .main-image {
+                height: 250px;
+            }
+            
+            .vehicle-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .vehicle-title-section h1 {
+                font-size: var(--font-size-xl);
+            }
+            
+            .vehicle-price-large {
+                font-size: 24px;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+            
+            .contact-actions {
+                flex-direction: column;
+            }
+            
+            .contact-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="nav-brand">
+                    <img src="icons/icon-192.png" alt="Logo" class="nav-logo">
+                    <span class="nav-title">大貨車銷售平台</span>
+                </div>
+                <div class="nav-actions">
+                    <a href="index.html" class="btn btn-secondary">返回首頁</a>
+                    <button id="loginBtn" class="btn">登入</button>
+                    <button id="logoutBtn" class="btn hidden">登出</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="main">
+        <div class="detail-container">
+            <!-- 返回按鈕 -->
+            <div class="back-button">
+                <button onclick="history.back()" class="btn btn-secondary">
+                    ← 返回列表
+                </button>
+            </div>
+
+            <!-- 載入中狀態 -->
+            <div id="loadingDetail" class="loading-detail">
+                <div class="spinner"></div>
+                <p>載入車輛資料中...</p>
+            </div>
+
+            <!-- 錯誤狀態 -->
+            <div id="errorDetail" class="error-detail hidden">
+                <h3>載入失敗</h3>
+                <p>無法載入車輛詳細資料，請稍後再試</p>
+                <button onclick="location.reload()" class="btn mt-3">重新載入</button>
+            </div>
+
+            <!-- 車輛詳細內容 -->
+            <div id="vehicleDetail" class="hidden">
+                <!-- 車主操作區 -->
+                <div id="ownerActions" class="owner-actions hidden">
+                    <h3>車主操作</h3>
+                    <div class="contact-actions">
+                        <button id="editVehicleBtn" class="btn">編輯車輛</button>
+                        <button id="markSoldBtn" class="btn btn-secondary">標記為售出</button>
+                        <button id="deleteVehicleBtn" class="btn" style="background-color: #ef4444;">刪除車輛</button>
+                    </div>
+                </div>
+
+                <!-- 圖片展示區 -->
+                <div class="vehicle-gallery">
+                    <img id="mainImage" src="" alt="車輛主圖" class="main-image">
+                    <div id="thumbnailGallery" class="thumbnail-gallery">
+                        <!-- 縮圖將由JavaScript動態生成 -->
+                    </div>
+                </div>
+
+                <!-- 車輛標題和價格 -->
+                <div class="vehicle-header">
+                    <div class="vehicle-title-section">
+                        <h1 id="vehicleTitle"></h1>
+                        <div id="vehiclePrice" class="vehicle-price-large"></div>
+                    </div>
+                    <div id="vehicleStatus" class="vehicle-status"></div>
+                </div>
+
+                <!-- 車輛詳細資訊 -->
+                <div class="detail-grid">
+                    <!-- 基本資訊 -->
+                    <div class="detail-section">
+                        <h3>基本資訊</h3>
+                        <ul id="basicInfo" class="detail-list">
+                            <!-- 將由JavaScript動態填入 -->
+                        </ul>
+                    </div>
+
+                    <!-- 規格資訊 -->
+                    <div class="detail-section">
+                        <h3>車輛規格</h3>
+                        <ul id="specInfo" class="detail-list">
+                            <!-- 將由JavaScript動態填入 -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 車輛描述 -->
+                <div id="descriptionSection" class="description-section">
+                    <h3>車輛描述</h3>
+                    <div id="vehicleDescription" class="description-text"></div>
+                </div>
+
+                <!-- 聯絡資訊 -->
+                <div class="contact-section">
+                    <h3>聯絡資訊</h3>
+                    <div id="contactInfo" class="mb-3">
+                        <!-- 聯絡資訊將由JavaScript動態填入 -->
+                    </div>
+                    <div class="contact-actions">
+                        <button id="copyContactBtn" class="btn">複製聯絡方式</button>
+                        <button id="shareVehicleBtn" class="btn btn-secondary">分享車輛</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/database.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    
+    <script type="module">
+        import { authManager } from './js/auth.js';
+        import { dbManager } from './js/database.js';
+        import { formatPrice, formatDate, getUrlParams, showNotification, copyToClipboard } from './js/utils.js';
+
+        class VehicleDetailApp {
+            constructor() {
+                this.vehicleId = null;
+                this.vehicle = null;
+                this.currentImageIndex = 0;
+                this.init();
+            }
+
+            async init() {
+                this.vehicleId = getUrlParams().id;
+                if (!this.vehicleId) {
+                    this.showError('缺少車輛ID');
+                    return;
+                }
+
+                this.initEventListeners();
+                await this.loadVehicleDetail();
+                
+                // 監聽認證狀態變化
+                authManager.addAuthListener(this.handleAuthStateChange.bind(this));
+            }
+
+            initEventListeners() {
+                // 複製聯絡方式
+                document.getElementById('copyContactBtn')?.addEventListener('click', this.copyContact.bind(this));
+                
+                // 分享車輛
+                document.getElementById('shareVehicleBtn')?.addEventListener('click', this.shareVehicle.bind(this));
+                
+                // 車主操作
+                document.getElementById('editVehicleBtn')?.addEventListener('click', this.editVehicle.bind(this));
+                document.getElementById('markSoldBtn')?.addEventListener('click', this.markSold.bind(this));
+                document.getElementById('deleteVehicleBtn')?.addEventListener('click', this.deleteVehicle.bind(this));
+                
+                // 登入登出
+                document.getElementById('loginBtn')?.addEventListener('click', () => {
+                    window.location.href = 'index.html';
+                });
+                document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+                    await authManager.logoutUser();
+                });
+            }
+
+            async loadVehicleDetail() {
+                try {
+                    const result = await dbManager.getVehicleById(this.vehicleId);
+                    if (result.success) {
+                        this.vehicle = result.vehicle;
+                        this.renderVehicleDetail();
+                        this.checkOwnership();
+                    } else {
+                        this.showError(result.error);
+                    }
+                } catch (error) {
+                    console.error('載入車輛詳細資料失敗:', error);
+                    this.showError('載入失敗');
+                }
+            }
+
+            renderVehicleDetail() {
+                document.getElementById('loadingDetail').classList.add('hidden');
+                document.getElementById('vehicleDetail').classList.remove('hidden');
+
+                // 設定標題和價格
+                document.getElementById('vehicleTitle').textContent = `${this.vehicle.brand} ${this.vehicle.model}`;
+                document.getElementById('vehiclePrice').textContent = formatPrice(this.vehicle.price);
+
+                // 設定狀態
+                const statusElement = document.getElementById('vehicleStatus');
+                statusElement.textContent = this.vehicle.status === 'available' ? '可售' : '已售出';
+                statusElement.className = `vehicle-status status-${this.vehicle.status}`;
+
+                // 渲染圖片
+                this.renderImages();
+
+                // 渲染基本資訊
+                this.renderBasicInfo();
+
+                // 渲染規格資訊
+                this.renderSpecInfo();
+
+                // 渲染描述
+                this.renderDescription();
+
+                // 渲染聯絡資訊
+                this.renderContactInfo();
+            }
+
+            renderImages() {
+                const mainImage = document.getElementById('mainImage');
+                const thumbnailGallery = document.getElementById('thumbnailGallery');
+
+                if (this.vehicle.images && this.vehicle.images.length > 0) {
+                    mainImage.src = this.vehicle.images[0];
+                    
+                    if (this.vehicle.images.length > 1) {
+                        thumbnailGallery.innerHTML = this.vehicle.images.map((image, index) => 
+                            `<img src="${image}" alt="車輛圖片 ${index + 1}" class="thumbnail ${index === 0 ? 'active' : ''}" data-index="${index}">`
+                        ).join('');
+
+                        // 添加縮圖點擊事件
+                        thumbnailGallery.querySelectorAll('.thumbnail').forEach(thumb => {
+                            thumb.addEventListener('click', (e) => {
+                                const index = parseInt(e.target.dataset.index);
+                                this.showImage(index);
+                            });
+                        });
+                    }
+                } else {
+                    mainImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBIMTgwVjEyMEgxMjBWODBaIiBmaWxsPSIjRTVFNUU1Ii8+PC9zdmc+Cg==';
+                }
+            }
+
+            showImage(index) {
+                if (this.vehicle.images && index < this.vehicle.images.length) {
+                    document.getElementById('mainImage').src = this.vehicle.images[index];
+                    
+                    // 更新活躍縮圖
+                    document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+                        thumb.classList.toggle('active', i === index);
+                    });
+                    
+                    this.currentImageIndex = index;
+                }
+            }
+
+            renderBasicInfo() {
+                const basicInfo = document.getElementById('basicInfo');
+                const basicData = [
+                    { label: '品牌', value: this.vehicle.brand },
+                    { label: '車型', value: this.vehicle.model },
+                    { label: '年份', value: `${this.vehicle.year}年` },
+                    { label: '里程', value: this.vehicle.mileage ? `${this.vehicle.mileage.toLocaleString()} km` : '未提供' },
+                    { label: '車輛類型', value: this.vehicle.type || '未分類' },
+                    { label: '發佈時間', value: formatDate(this.vehicle.createdAt) }
+                ];
+
+                basicInfo.innerHTML = basicData.map(item => 
+                    `<li><span class="label">${item.label}</span><span class="value">${item.value}</span></li>`
+                ).join('');
+            }
+
+            renderSpecInfo() {
+                const specInfo = document.getElementById('specInfo');
+                const specData = [
+                    { label: '引擎', value: this.vehicle.engine || '未提供' },
+                    { label: '變速箱', value: this.vehicle.transmission || '未提供' },
+                    { label: '載重量', value: this.vehicle.payload ? `${this.vehicle.payload} 噸` : '未提供' },
+                    { label: '燃料類型', value: this.vehicle.fuelType || '未提供' },
+                    { label: '車牌號碼', value: this.vehicle.licensePlate || '未提供' }
+                ];
+
+                specInfo.innerHTML = specData.map(item => 
+                    `<li><span class="label">${item.label}</span><span class="value">${item.value}</span></li>`
+                ).join('');
+            }
+
+            renderDescription() {
+                const descriptionSection = document.getElementById('descriptionSection');
+                const descriptionText = document.getElementById('vehicleDescription');
+                
+                if (this.vehicle.description && this.vehicle.description.trim()) {
+                    descriptionText.textContent = this.vehicle.description;
+                    descriptionSection.classList.remove('hidden');
+                } else {
+                    descriptionSection.classList.add('hidden');
+                }
+            }
+
+            renderContactInfo() {
+                const contactInfo = document.getElementById('contactInfo');
+                contactInfo.innerHTML = `
+                    <p><strong>聯絡人：</strong>${this.vehicle.ownerName || '未提供'}</p>
+                    <p><strong>聯絡方式：</strong>${this.vehicle.contact || '未提供'}</p>
+                    ${this.vehicle.location ? `<p><strong>車輛位置：</strong>${this.vehicle.location}</p>` : ''}
+                `;
+            }
+
+            checkOwnership() {
+                const currentUser = authManager.getCurrentUser();
+                const ownerActions = document.getElementById('ownerActions');
+                
+                if (currentUser && currentUser.uid === this.vehicle.ownerId) {
+                    ownerActions.classList.remove('hidden');
+                }
+            }
+
+            handleAuthStateChange(user) {
+                this.checkOwnership();
+            }
+
+            async copyContact() {
+                const contactText = this.vehicle.contact || '';
+                if (contactText) {
+                    const success = await copyToClipboard(contactText);
+                    if (success) {
+                        showNotification('聯絡方式已複製到剪貼簿', 'success');
+                    } else {
+                        showNotification('複製失敗', 'error');
+                    }
+                } else {
+                    showNotification('沒有聯絡方式可複製', 'warning');
+                }
+            }
+
+            shareVehicle() {
+                const url = window.location.href;
+                const title = `${this.vehicle.brand} ${this.vehicle.model} - ${formatPrice(this.vehicle.price)}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: title,
+                        url: url
+                    });
+                } else {
+                    copyToClipboard(url).then(success => {
+                        if (success) {
+                            showNotification('車輛連結已複製到剪貼簿', 'success');
+                        }
+                    });
+                }
+            }
+
+            editVehicle() {
+                window.location.href = `add-vehicle.html?edit=${this.vehicleId}`;
+            }
+
+            async markSold() {
+                if (confirm('確定要將此車輛標記為售出嗎？')) {
+                    const result = await dbManager.markVehicleSold(this.vehicleId);
+                    if (result.success) {
+                        showNotification('車輛已標記為售出', 'success');
+                        await this.loadVehicleDetail();
+                    } else {
+                        showNotification(result.error, 'error');
+                    }
+                }
+            }
+
+            async deleteVehicle() {
+                if (confirm('確定要刪除此車輛嗎？此操作無法復原。')) {
+                    const result = await dbManager.deleteVehicle(this.vehicleId);
+                    if (result.success) {
+                        showNotification('車輛已刪除', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
+                    } else {
+                        showNotification(result.error, 'error');
+                    }
+                }
+            }
+
+            showError(message) {
+                document.getElementById('loadingDetail').classList.add('hidden');
+                document.getElementById('errorDetail').classList.remove('hidden');
+                document.querySelector('#errorDetail p').textContent = message;
+            }
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            window.vehicleDetailApp = new VehicleDetailApp();
+        });
+    </script>
+</body>
+</html>

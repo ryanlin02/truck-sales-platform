@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的車輛 - 大貨車銷售平台</title>
+    
+    <!-- 網站圖標 -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="icons/icon-256.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- 樣式表 -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    
+    <style>
+        /* 我的車輛頁面專用樣式 */
+        .my-vehicles-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--mobile-padding);
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+        
+        .page-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-card {
+            background: var(--primary-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--accent-color);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-label {
+            color: var(--secondary-text);
+            font-size: var(--font-size-sm);
+        }
+        
+        .filter-section {
+            background: var(--primary-bg);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .vehicle-list {
+            display: grid;
+            gap: var(--spacing-lg);
+        }
+        
+        .my-vehicle-card {
+            background: var(--primary-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        
+        .my-vehicle-card:hover {
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .vehicle-card-content {
+            display: grid;
+            grid-template-columns: 200px 1fr auto;
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg);
+        }
+        
+        .vehicle-thumbnail {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            background-color: #f5f5f5;
+        }
+        
+        .vehicle-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .vehicle-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .vehicle-price {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--accent-color);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .vehicle-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .vehicle-detail {
+            font-size: var(--font-size-sm);
+            color: var(--secondary-text);
+        }
+        
+        .vehicle-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--font-size-sm);
+            color: var(--secondary-text);
+        }
+        
+        .vehicle-status {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .status-available {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-sold {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .vehicle-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            min-width: 120px;
+        }
+        
+        .action-btn {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: var(--font-size-sm);
+            text-decoration: none;
+            text-align: center;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .action-btn.secondary {
+            background-color: transparent;
+            color: var(--primary-text);
+            border: 1px solid var(--border-color);
+        }
+        
+        .action-btn.danger {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-light);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--secondary-text);
+        }
+        
+        .empty-state h3 {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .auth-required {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--secondary-text);
+        }
+        
+        /* 手機優化 */
+        @media (max-width: 767px) {
+            .my-vehicles-container {
+                padding: var(--spacing-md);
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .page-title {
+                font-size: var(--font-size-xl);
+            }
+            
+            .vehicle-card-content {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-sm);
+            }
+            
+            .vehicle-thumbnail {
+                width: 100%;
+                height: 200px;
+                justify-self: center;
+            }
+            
+            .vehicle-actions {
+                flex-direction: row;
+                min-width: auto;
+            }
+            
+            .action-btn {
+                flex: 1;
+            }
+            
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-row select,
+            .filter-row button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="nav-brand">
+                    <img src="icons/icon-192.png" alt="Logo" class="nav-logo">
+                    <span class="nav-title">大貨車銷售平台</span>
+                </div>
+                <div class="nav-actions">
+                    <a href="index.html" class="btn btn-secondary">返回首頁</a>
+                    <button id="logoutBtn" class="btn">登出</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="main">
+        <div class="my-vehicles-container">
+            <!-- 需要登入提示 -->
+            <div id="authRequired" class="auth-required hidden">
+                <h2>需要登入</h2>
+                <p>請先登入以檢視您的車輛</p>
+                <a href="index.html" class="btn mt-3">前往登入</a>
+            </div>
+
+            <!-- 我的車輛內容 -->
+            <div id="myVehiclesContent" class="hidden">
+                <!-- 頁面標題 -->
+                <div class="page-header">
+                    <h1 class="page-title">我的車輛</h1>
+                    <a href="add-vehicle.html" class="btn">新增車輛</a>
+                </div>
+
+                <!-- 統計資料 -->
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <div id="totalVehicles" class="stat-number">0</div>
+                        <div class="stat-label">總車輛數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="availableVehicles" class="stat-number">0</div>
+                        <div class="stat-label">可售車輛</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="soldVehicles" class="stat-number">0</div>
+                        <div class="stat-label">已售車輛</div>
+                    </div>
+                </div>
+
+                <!-- 篩選區域 -->
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <select id="statusFilter">
+                            <option value="">所有狀態</option>
+                            <option value="available">可售中</option>
+                            <option value="sold">已售出</option>
+                            <option value="pending">待處理</option>
+                        </select>
+                        
+                        <select id="sortOrder">
+                            <option value="newest">最新發佈</option>
+                            <option value="oldest">最早發佈</option>
+                            <option value="price-high">價格高到低</option>
+                            <option value="price-low">價格低到高</option>
+                        </select>
+                        
+                        <button id="refreshBtn" class="btn btn-secondary">重新載入</button>
+                    </div>
+                </div>
+
+                <!-- 車輛列表 -->
+                <div id="vehiclesList" class="vehicle-list">
+                    <!-- 車輛項目將由JavaScript動態生成 -->
+                </div>
+
+                <!-- 載入中狀態 -->
+                <div id="loadingState" class="loading">
+                    <div class="spinner"></div>
+                    <p>載入車輛資料中...</p>
+                </div>
+
+                <!-- 空狀態 -->
+                <div id="emptyState" class="empty-state hidden">
+                    <h3>還沒有車輛</h3>
+                    <p>開始新增您的第一輛車輛吧！</p>
+                    <a href="add-vehicle.html" class="btn mt-3">新增車輛</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/database.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    
+    <script type="module">
+        import { authManager } from './js/auth.js';
+        import { dbManager } from './js/database.js';
+        import { formatPrice, formatRelativeTime, showNotification } from './js/utils.js';
+
+        class MyVehiclesApp {
+            constructor() {
+                this.vehicles = [];
+                this.filteredVehicles = [];
+                this.currentFilters = { status: '', sort: 'newest' };
+                this.init();
+            }
+
+            async init() {
+                this.initEventListeners();
+                
+                // 監聽認證狀態變化
+                authManager.addAuthListener(this.handleAuthStateChange.bind(this));
+                
+                // 檢查初始認證狀態
+                this.checkAuthStatus();
+            }
+
+            initEventListeners() {
+                // 篩選和排序
+                document.getElementById('statusFilter').addEventListener('change', this.handleFilterChange.bind(this));
+                document.getElementById('sortOrder').addEventListener('change', this.handleSortChange.bind(this));
+                document.getElementById('refreshBtn').addEventListener('click', this.loadMyVehicles.bind(this));
+
+                // 登出
+                document.getElementById('logoutBtn').addEventListener('click', async () => {
+                    await authManager.logoutUser();
+                    window.location.href = 'index.html';
+                });
+            }
+
+            checkAuthStatus() {
+                const currentUser = authManager.getCurrentUser();
+                if (currentUser) {
+                    this.showMyVehiclesContent();
+                    this.loadMyVehicles();
+                } else {
+                    this.showAuthRequired();
+                }
+            }
+
+            handleAuthStateChange(user) {
+                if (user) {
+                    this.showMyVehiclesContent();
+                    this.loadMyVehicles();
+                } else {
+                    this.showAuthRequired();
+                }
+            }
+
+            showMyVehiclesContent() {
+                document.getElementById('authRequired').classList.add('hidden');
+                document.getElementById('myVehiclesContent').classList.remove('hidden');
+            }
+
+            showAuthRequired() {
+                document.getElementById('myVehiclesContent').classList.add('hidden');
+                document.getElementById('authRequired').classList.remove('hidden');
+            }
+
+            async loadMyVehicles() {
+                const currentUser = authManager.getCurrentUser();
+                if (!currentUser) return;
+
+                this.showLoading();
+
+                try {
+                    const result = await dbManager.getUserVehicles(currentUser.uid);
+                    if (result.success) {
+                        this.vehicles = result.vehicles;
+                        this.applyFiltersAndSort();
+                        this.updateStatistics();
+                    } else {
+                        showNotification('載入車輛資料失敗', 'error');
+                    }
+                } catch (error) {
+                    console.error('載入我的車輛失敗:', error);
+                    showNotification('載入失敗', 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            handleFilterChange() {
+                this.currentFilters.status = document.getElementById('statusFilter').value;
+                this.applyFiltersAndSort();
+            }
+
+            handleSortChange() {
+                this.currentFilters.sort = document.getElementById('sortOrder').value;
+                this.applyFiltersAndSort();
+            }
+
+            applyFiltersAndSort() {
+                let filtered = this.vehicles;
+
+                // 套用狀態篩選
+                if (this.currentFilters.status) {
+                    filtered = filtered.filter(vehicle => vehicle.status === this.currentFilters.status);
+                }
+
+                // 套用排序
+                switch (this.currentFilters.sort) {
+                    case 'newest':
+                        filtered.sort((a, b) => new Date(b.createdAt.seconds * 1000) - new Date(a.createdAt.seconds * 1000));
+                        break;
+                    case 'oldest':
+                        filtered.sort((a, b) => new Date(a.createdAt.seconds * 1000) - new Date(b.createdAt.seconds * 1000));
+                        break;
+                    case 'price-high':
+                        filtered.sort((a, b) => b.price - a.price);
+                        break;
+                    case 'price-low':
+                        filtered.sort((a, b) => a.price - b.price);
+                        break;
+                }
+
+                this.filteredVehicles = filtered;
+                this.renderVehicleList();
+            }
+
+            updateStatistics() {
+                const total = this.vehicles.length;
+                const available = this.vehicles.filter(v => v.status === 'available').length;
+                const sold = this.vehicles.filter(v => v.status === 'sold').length;
+
+                document.getElementById('totalVehicles').textContent = total;
+                document.getElementById('availableVehicles').textContent = available;
+                document.getElementById('soldVehicles').textContent = sold;
+            }
+
+            renderVehicleList() {
+                const vehiclesList = document.getElementById('vehiclesList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (this.filteredVehicles.length === 0) {
+                    vehiclesList.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                vehiclesList.innerHTML = this.filteredVehicles.map(vehicle => this.createVehicleCard(vehicle)).join('');
+
+                // 添加事件監聽器
+                this.attachCardEventListeners();
+            }
+
+            createVehicleCard(vehicle) {
+                const primaryImage = vehicle.images && vehicle.images.length > 0 
+                    ? vehicle.images[0] 
+                    : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik04MCA2MEgxMjBWOTBIODBWNjBaIiBmaWxsPSIjRTVFNUU1Ii8+PC9zdmc+Cg==';
+
+                const statusText = this.getStatusText(vehicle.status);
+                const statusClass = `status-${vehicle.status}`;
+
+                return `
+                    <div class="my-vehicle-card">
+                        <div class="vehicle-card-content">
+                            <img src="${primaryImage}" alt="${vehicle.brand} ${vehicle.model}" class="vehicle-thumbnail" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik04MCA2MEgxMjBWOTBIODBWNjBaIiBmaWxsPSIjRTVFNUU1Ii8+PC9zdmc+Cg=='">
+                            
+                            <div class="vehicle-info">
+                                <div class="vehicle-title">${vehicle.brand} ${vehicle.model}</div>
+                                <div class="vehicle-price">${formatPrice(vehicle.price)}</div>
+                                <div class="vehicle-details">
+                                    <span class="vehicle-detail">年份：${vehicle.year}</span>
+                                    ${vehicle.mileage ? `<span class="vehicle-detail">里程：${vehicle.mileage.toLocaleString()} km</span>` : ''}
+                                    ${vehicle.type ? `<span class="vehicle-detail">類型：${this.getTypeText(vehicle.type)}</span>` : ''}
+                                </div>
+                                <div class="vehicle-meta">
+                                    <span class="vehicle-status ${statusClass}">${statusText}</span>
+                                    <span>${formatRelativeTime(vehicle.createdAt)}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="vehicle-actions">
+                                <a href="vehicle-detail.html?id=${vehicle.id}" class="action-btn primary">檢視詳情</a>
+                                <a href="add-vehicle.html?edit=${vehicle.id}" class="action-btn secondary">編輯</a>
+                                ${vehicle.status === 'available' ? 
+                                    `<button onclick="window.myVehiclesApp.markAsSold('${vehicle.id}')" class="action-btn secondary">標記售出</button>` : ''}
+                                <button onclick="window.myVehiclesApp.deleteVehicle('${vehicle.id}')" class="action-btn danger">刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            attachCardEventListeners() {
+                // 事件監聽器已通過內聯事件處理器添加
+                // 這裡可以添加額外的事件監聽器如果需要
+            }
+
+            getStatusText(status) {
+                switch (status) {
+                    case 'available': return '可售中';
+                    case 'sold': return '已售出';
+                    case 'pending': return '待處理';
+                    default: return '未知狀態';
+                }
+            }
+
+            getTypeText(type) {
+                switch (type) {
+                    case 'truck': return '貨車';
+                    case 'trailer': return '拖車';
+                    case 'semi-trailer': return '半拖車';
+                    default: return type;
+                }
+            }
+
+            async markAsSold(vehicleId) {
+                if (!confirm('確定要將此車輛標記為售出嗎？')) return;
+
+                try {
+                    const result = await dbManager.markVehicleSold(vehicleId);
+                    if (result.success) {
+                        showNotification('車輛已標記為售出', 'success');
+                        await this.loadMyVehicles();
+                    } else {
+                        showNotification(result.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('標記售出失敗:', error);
+                    showNotification('操作失敗', 'error');
+                }
+            }
+
+            async deleteVehicle(vehicleId) {
+                if (!confirm('確定要刪除此車輛嗎？此操作無法復原。')) return;
+
+                try {
+                    const result = await dbManager.deleteVehicle(vehicleId);
+                    if (result.success) {
+                        showNotification('車輛已刪除', 'success');
+                        await this.loadMyVehicles();
+                    } else {
+                        showNotification(result.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('刪除車輛失敗:', error);
+                    showNotification('刪除失敗', 'error');
+                }
+            }
+
+            showLoading() {
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('vehiclesList').style.display = 'none';
+                document.getElementById('emptyState').classList.add('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('vehiclesList').style.display = 'grid';
+            }
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            window.myVehiclesApp = new MyVehiclesApp();
+        });
+    </script>
+</body>
+</html>

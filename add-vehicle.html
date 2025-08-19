@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增車輛 - 大貨車銷售平台</title>
+    
+    <!-- 網站圖標 -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="icons/icon-256.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- 樣式表 -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    
+    <style>
+        /* 新增車輛頁面專用樣式 */
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--mobile-padding);
+        }
+        
+        .form-card {
+            background: var(--primary-bg);
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-light);
+        }
+        
+        .form-section {
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .form-section h3 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-md);
+            color: var(--primary-text);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .form-row.single {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .image-upload-section {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        
+        .image-upload-section.dragover {
+            border-color: var(--accent-color);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+        
+        .upload-hint {
+            color: var(--secondary-text);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+        
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .loading-content {
+            background: var(--primary-bg);
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            box-shadow: var(--shadow-heavy);
+        }
+        
+        .auth-required {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--secondary-text);
+        }
+        
+        /* 手機優化 */
+        @media (max-width: 767px) {
+            .form-container {
+                padding: var(--spacing-md);
+            }
+            
+            .form-card {
+                padding: var(--spacing-md);
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-actions .btn {
+                width: 100%;
+            }
+            
+            .preview-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="nav-brand">
+                    <img src="icons/icon-192.png" alt="Logo" class="nav-logo">
+                    <span class="nav-title">大貨車銷售平台</span>
+                </div>
+                <div class="nav-actions">
+                    <a href="index.html" class="btn btn-secondary">返回首頁</a>
+                    <button id="logoutBtn" class="btn">登出</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="main">
+        <div class="form-container">
+            <!-- 需要登入提示 -->
+            <div id="authRequired" class="auth-required hidden">
+                <h2>需要登入</h2>
+                <p>請先登入以新增車輛資訊</p>
+                <a href="index.html" class="btn mt-3">前往登入</a>
+            </div>
+
+            <!-- 車輛表單 -->
+            <div id="vehicleForm" class="hidden">
+                <div class="form-card">
+                    <h2 id="formTitle">新增車輛</h2>
+                    
+                    <form id="addVehicleForm">
+                        <!-- 基本資訊 -->
+                        <div class="form-section">
+                            <h3>基本資訊</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="brand">品牌 *</label>
+                                    <select id="brand" required>
+                                        <option value="">請選擇品牌</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="model">車型 *</label>
+                                    <input type="text" id="model" required placeholder="請輸入車型">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="year">年份 *</label>
+                                    <input type="number" id="year" required min="1990" max="2025" placeholder="例：2020">
+                                </div>
+                                <div class="form-group">
+                                    <label for="price">售價 (新台幣) *</label>
+                                    <input type="number" id="price" required min="0" placeholder="例：1500000">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="vehicleType">車輛類型</label>
+                                    <select id="vehicleType">
+                                        <option value="">請選擇類型</option>
+                                        <option value="truck">貨車</option>
+                                        <option value="trailer">拖車</option>
+                                        <option value="semi-trailer">半拖車</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="mileage">里程 (公里)</label>
+                                    <input type="number" id="mileage" min="0" placeholder="例：150000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 規格資訊 -->
+                        <div class="form-section">
+                            <h3>車輛規格</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="engine">引擎</label>
+                                    <input type="text" id="engine" placeholder="例：6.7L V6 渦輪增壓">
+                                </div>
+                                <div class="form-group">
+                                    <label for="transmission">變速箱</label>
+                                    <input type="text" id="transmission" placeholder="例：手動 6速">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="payload">載重量 (噸)</label>
+                                    <input type="number" id="payload" min="0" step="0.1" placeholder="例：15.5">
+                                </div>
+                                <div class="form-group">
+                                    <label for="fuelType">燃料類型</label>
+                                    <select id="fuelType">
+                                        <option value="">請選擇</option>
+                                        <option value="diesel">柴油</option>
+                                        <option value="gasoline">汽油</option>
+                                        <option value="hybrid">油電混合</option>
+                                        <option value="electric">電動</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="licensePlate">車牌號碼</label>
+                                    <input type="text" id="licensePlate" placeholder="例：ABC-1234">
+                                </div>
+                                <div class="form-group">
+                                    <label for="location">車輛位置</label>
+                                    <input type="text" id="location" placeholder="例：台北市中山區">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 圖片上傳 -->
+                        <div class="form-section">
+                            <h3>車輛照片</h3>
+                            
+                            <div class="image-upload-section" id="imageUploadSection">
+                                <div class="upload-hint">
+                                    <p>拖拽圖片到此處或點擊選擇檔案</p>
+                                    <p>支援 JPG、PNG、WebP 格式，單張最大 5MB，最多 10 張</p>
+                                </div>
+                                
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="imageInput" class="file-input" multiple accept="image/*">
+                                    <button type="button" class="btn">選擇圖片</button>
+                                </div>
+                                
+                                <div id="imagePreview" class="preview-grid">
+                                    <!-- 圖片預覽將在這裡顯示 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 描述資訊 -->
+                        <div class="form-section">
+                            <h3>車輛描述</h3>
+                            
+                            <div class="form-row single">
+                                <div class="form-group">
+                                    <label for="description">詳細描述</label>
+                                    <textarea id="description" placeholder="請描述車輛的詳細狀況、配備、使用歷史等..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 聯絡資訊 -->
+                        <div class="form-section">
+                            <h3>聯絡資訊</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="contact">聯絡方式 *</label>
+                                    <input type="text" id="contact" required placeholder="電話號碼、Line ID 或其他聯絡方式">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 表單操作 -->
+                        <div class="form-actions">
+                            <button type="button" onclick="history.back()" class="btn btn-secondary">取消</button>
+                            <button type="submit" id="submitBtn" class="btn">
+                                <span id="submitText">發佈車輛</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 載入中覆蓋層 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingText">處理中...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/database.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    
+    <script type="module">
+        import { authManager } from './js/auth.js';
+        import { dbManager } from './js/database.js';
+        import { VEHICLE_BRANDS } from './js/config.js';
+        import { 
+            validateImageFiles, 
+            createImagePreview, 
+            showNotification, 
+            getUrlParams 
+        } from './js/utils.js';
+
+        class AddVehicleApp {
+            constructor() {
+                this.selectedImages = [];
+                this.isEditMode = false;
+                this.editVehicleId = null;
+                this.existingImages = [];
+                this.init();
+            }
+
+            async init() {
+                this.checkAuthAndMode();
+                this.initBrandOptions();
+                this.initEventListeners();
+                
+                // 監聽認證狀態變化
+                authManager.addAuthListener(this.handleAuthStateChange.bind(this));
+            }
+
+            checkAuthAndMode() {
+                const urlParams = getUrlParams();
+                if (urlParams.edit) {
+                    this.isEditMode = true;
+                    this.editVehicleId = urlParams.edit;
+                    document.getElementById('formTitle').textContent = '編輯車輛';
+                    document.getElementById('submitText').textContent = '更新車輛';
+                }
+
+                const currentUser = authManager.getCurrentUser();
+                if (currentUser) {
+                    document.getElementById('vehicleForm').classList.remove('hidden');
+                    if (this.isEditMode) {
+                        this.loadVehicleForEdit();
+                    }
+                } else {
+                    document.getElementById('authRequired').classList.remove('hidden');
+                }
+            }
+
+            initBrandOptions() {
+                const brandSelect = document.getElementById('brand');
+                VEHICLE_BRANDS.forEach(brand => {
+                    const option = document.createElement('option');
+                    option.value = brand;
+                    option.textContent = brand;
+                    brandSelect.appendChild(option);
+                });
+            }
+
+            initEventListeners() {
+                // 表單提交
+                document.getElementById('addVehicleForm').addEventListener('submit', this.handleFormSubmit.bind(this));
+                
+                // 圖片上傳
+                const imageInput = document.getElementById('imageInput');
+                imageInput.addEventListener('change', this.handleImageSelect.bind(this));
+                
+                // 拖拽上傳
+                const uploadSection = document.getElementById('imageUploadSection');
+                uploadSection.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadSection.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadSection.addEventListener('drop', this.handleDrop.bind(this));
+
+                // 登出
+                document.getElementById('logoutBtn').addEventListener('click', async () => {
+                    await authManager.logoutUser();
+                    window.location.href = 'index.html';
+                });
+            }
+
+            async loadVehicleForEdit() {
+                try {
+                    this.showLoading('載入車輛資料中...');
+                    
+                    const result = await dbManager.getVehicleById(this.editVehicleId);
+                    if (result.success) {
+                        const vehicle = result.vehicle;
+                        
+                        // 檢查是否為車主
+                        const currentUser = authManager.getCurrentUser();
+                        if (currentUser.uid !== vehicle.ownerId) {
+                            showNotification('您沒有權限編輯此車輛', 'error');
+                            window.location.href = 'index.html';
+                            return;
+                        }
+
+                        this.populateForm(vehicle);
+                        this.existingImages = vehicle.images || [];
+                        this.displayExistingImages();
+                    } else {
+                        showNotification('載入車輛資料失敗', 'error');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('載入車輛資料失敗:', error);
+                    showNotification('載入失敗', 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            populateForm(vehicle) {
+                document.getElementById('brand').value = vehicle.brand || '';
+                document.getElementById('model').value = vehicle.model || '';
+                document.getElementById('year').value = vehicle.year || '';
+                document.getElementById('price').value = vehicle.price || '';
+                document.getElementById('vehicleType').value = vehicle.type || '';
+                document.getElementById('mileage').value = vehicle.mileage || '';
+                document.getElementById('engine').value = vehicle.engine || '';
+                document.getElementById('transmission').value = vehicle.transmission || '';
+                document.getElementById('payload').value = vehicle.payload || '';
+                document.getElementById('fuelType').value = vehicle.fuelType || '';
+                document.getElementById('licensePlate').value = vehicle.licensePlate || '';
+                document.getElementById('location').value = vehicle.location || '';
+                document.getElementById('description').value = vehicle.description || '';
+                document.getElementById('contact').value = vehicle.contact || '';
+            }
+
+            displayExistingImages() {
+                const previewContainer = document.getElementById('imagePreview');
+                previewContainer.innerHTML = '';
+
+                this.existingImages.forEach((imageUrl, index) => {
+                    const previewItem = this.createImagePreviewElement(imageUrl, `existing-${index}`, true);
+                    previewContainer.appendChild(previewItem);
+                });
+            }
+
+            handleAuthStateChange(user) {
+                if (!user) {
+                    document.getElementById('vehicleForm').classList.add('hidden');
+                    document.getElementById('authRequired').classList.remove('hidden');
+                }
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                this.processImageFiles(files);
+            }
+
+            handleImageSelect(e) {
+                const files = Array.from(e.target.files);
+                this.processImageFiles(files);
+            }
+
+            async processImageFiles(files) {
+                const validation = validateImageFiles([...this.selectedImages, ...files]);
+                if (!validation.valid) {
+                    showNotification(validation.error, 'error');
+                    return;
+                }
+
+                for (const file of files) {
+                    try {
+                        const previewUrl = await createImagePreview(file);
+                        this.selectedImages.push(file);
+                        
+                        const previewItem = this.createImagePreviewElement(previewUrl, this.selectedImages.length - 1);
+                        document.getElementById('imagePreview').appendChild(previewItem);
+                    } catch (error) {
+                        console.error('創建圖片預覽失敗:', error);
+                    }
+                }
+            }
+
+            createImagePreviewElement(src, index, isExisting = false) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.innerHTML = `
+                    <img src="${src}" alt="預覽圖片" class="preview-image">
+                    <button type="button" class="remove-image" data-index="${index}" data-existing="${isExisting}">×</button>
+                `;
+
+                previewItem.querySelector('.remove-image').addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    const existing = e.target.dataset.existing === 'true';
+                    
+                    if (existing) {
+                        this.existingImages.splice(idx, 1);
+                        this.displayExistingImages();
+                        this.redisplayNewImages();
+                    } else {
+                        this.selectedImages.splice(idx, 1);
+                        this.redisplayNewImages();
+                    }
+                });
+
+                return previewItem;
+            }
+
+            redisplayNewImages() {
+                const previewContainer = document.getElementById('imagePreview');
+                
+                // 移除新上傳的圖片預覽
+                const newPreviews = previewContainer.querySelectorAll('[data-existing="false"]');
+                newPreviews.forEach(preview => preview.remove());
+
+                // 重新顯示新上傳的圖片
+                this.selectedImages.forEach(async (file, index) => {
+                    try {
+                        const previewUrl = await createImagePreview(file);
+                        const previewItem = this.createImagePreviewElement(previewUrl, index);
+                        previewContainer.appendChild(previewItem);
+                    } catch (error) {
+                        console.error('重新顯示圖片預覽失敗:', error);
+                    }
+                });
+            }
+
+            async handleFormSubmit(e) {
+                e.preventDefault();
+                
+                const currentUser = authManager.getCurrentUser();
+                if (!currentUser) {
+                    showNotification('請先登入', 'error');
+                    return;
+                }
+
+                // 收集表單資料
+                const formData = this.collectFormData();
+                
+                // 驗證必填欄位
+                const validation = dbManager.validateVehicleData(formData);
+                if (!validation.isValid) {
+                    showNotification(validation.errors.join('\n'), 'error');
+                    return;
+                }
+
+                try {
+                    if (this.isEditMode) {
+                        await this.updateVehicle(formData);
+                    } else {
+                        await this.createVehicle(formData);
+                    }
+                } catch (error) {
+                    console.error('提交表單失敗:', error);
+                    showNotification('操作失敗，請稍後再試', 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            collectFormData() {
+                const currentUser = authManager.getCurrentUser();
+                
+                return {
+                    brand: document.getElementById('brand').value,
+                    model: document.getElementById('model').value,
+                    year: parseInt(document.getElementById('year').value),
+                    price: parseInt(document.getElementById('price').value),
+                    type: document.getElementById('vehicleType').value,
+                    mileage: document.getElementById('mileage').value ? parseInt(document.getElementById('mileage').value) : null,
+                    engine: document.getElementById('engine').value,
+                    transmission: document.getElementById('transmission').value,
+                    payload: document.getElementById('payload').value ? parseFloat(document.getElementById('payload').value) : null,
+                    fuelType: document.getElementById('fuelType').value,
+                    licensePlate: document.getElementById('licensePlate').value,
+                    location: document.getElementById('location').value,
+                    description: document.getElementById('description').value,
+                    contact: document.getElementById('contact').value,
+                    ownerId: currentUser.uid,
+                    ownerName: currentUser.displayName || currentUser.email
+                };
+            }
+
+            async createVehicle(formData) {
+                this.showLoading('上傳車輛資料中...');
+                
+                const result = await dbManager.addVehicle(formData, this.selectedImages);
+                if (result.success) {
+                    showNotification('車輛新增成功！', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'my-vehicles.html';
+                    }, 1000);
+                } else {
+                    showNotification(result.error, 'error');
+                }
+            }
+
+            async updateVehicle(formData) {
+                this.showLoading('更新車輛資料中...');
+                
+                const result = await dbManager.updateVehicle(
+                    this.editVehicleId, 
+                    formData, 
+                    this.selectedImages,
+                    [] // 這裡可以加入要刪除的圖片URL列表
+                );
+                
+                if (result.success) {
+                    showNotification('車輛更新成功！', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'my-vehicles.html';
+                    }, 1000);
+                } else {
+                    showNotification(result.error, 'error');
+                }
+            }
+
+            showLoading(message) {
+                document.getElementById('loadingText').textContent = message;
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            window.addVehicleApp = new AddVehicleApp();
+        });
+    </script>
+</body>
+</html>
