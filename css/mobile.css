@@ -1,0 +1,273 @@
+/* 手機直式優化樣式 */
+
+/* 小於768px的設備（手機） */
+@media (max-width: 767px) {
+  /* 容器調整 */
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+
+  /* 導航欄手機優化 */
+  .nav {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: stretch;
+  }
+
+  .nav-brand {
+    justify-content: center;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .nav-title {
+    font-size: var(--font-size-base);
+  }
+
+  .nav-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* 搜尋區手機優化 */
+  .search-container {
+    padding: var(--spacing-md);
+  }
+
+  .search-row {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .price-filter {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .price-filter span {
+    text-align: center;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .price-input {
+    width: 100%;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  /* 車輛列表手機優化 */
+  .vehicles-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .vehicles-header h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .vehicles-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  /* 車輛卡片手機優化 */
+  .vehicle-card {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .vehicle-image {
+    height: 180px;
+  }
+
+  .vehicle-info {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .vehicle-title {
+    font-size: var(--font-size-base);
+    line-height: 1.4;
+  }
+
+  .vehicle-price {
+    font-size: var(--font-size-lg);
+  }
+
+  .vehicle-details {
+    gap: var(--spacing-xs);
+  }
+
+  .vehicle-detail {
+    font-size: 13px;
+  }
+
+  .vehicle-meta {
+    font-size: 13px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  /* 按鈕手機優化 */
+  .btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+    width: 100%;
+    text-align: center;
+  }
+
+  .nav-actions .btn {
+    width: auto;
+    min-width: 80px;
+  }
+
+  /* 模態框手機優化 */
+  .modal {
+    align-items: flex-start;
+    padding: var(--spacing-md);
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: none;
+    margin-top: var(--spacing-lg);
+  }
+
+  .modal-header {
+    padding: var(--spacing-md);
+  }
+
+  .modal-header h3 {
+    font-size: var(--font-size-lg);
+  }
+
+  .modal-body {
+    padding: var(--spacing-md);
+  }
+
+  /* 表單手機優化 */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: var(--spacing-md);
+    font-size: 16px; /* 防止iOS縮放 */
+  }
+}
+
+/* 極小螢幕（320px以下） */
+@media (max-width: 320px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .search-container {
+    padding: var(--spacing-sm);
+  }
+
+  .vehicle-info {
+    padding: var(--spacing-sm);
+  }
+
+  .vehicle-title {
+    font-size: var(--font-size-sm);
+  }
+
+  .vehicle-price {
+    font-size: var(--font-size-base);
+  }
+
+  .modal-content {
+    margin-top: var(--spacing-sm);
+  }
+}
+
+/* 平板直式（768px - 1024px） */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .vehicles-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+
+  .search-row {
+    flex-direction: row;
+  }
+
+  .filter-row {
+    flex-wrap: wrap;
+  }
+
+  .price-filter {
+    flex-direction: row;
+  }
+
+  .nav {
+    flex-direction: row;
+  }
+
+  .nav-actions .btn {
+    width: auto;
+  }
+}
+
+/* 觸控優化 */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px; /* iOS建議最小觸控目標 */
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vehicle-card {
+    transition: transform 0.1s ease;
+  }
+
+  .vehicle-card:active {
+    transform: scale(0.98);
+  }
+}
+
+/* 橫屏警告（手機橫屏時的提示） */
+@media (max-width: 767px) and (orientation: landscape) {
+  body::before {
+    content: "建議將設備旋轉至直式以獲得最佳瀏覽體驗";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--accent-color);
+    color: white;
+    text-align: center;
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    z-index: 9999;
+  }
+
+  body {
+    padding-top: 40px;
+  }
+}
+
+/* 暗色主題媒體查詢準備（可選功能） */
+@media (prefers-color-scheme: dark) {
+  /* 暫時保持淺色主題，未來可以添加暗色主題支援 */
+}
