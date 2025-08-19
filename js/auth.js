@@ -16,27 +16,36 @@ class AuthManager {
   constructor() {
     this.currentUser = null;
     this.authListeners = [];
+    this.authReady = false;
+    this.authPromise = null;
     this.initAuthStateListener();
   }
 
   // 初始化認證狀態監聽器
   initAuthStateListener() {
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // 獲取用戶詳細資料
-        const userDoc = await this.getUserProfile(user.uid);
-        this.currentUser = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          ...userDoc
-        };
-      } else {
-        this.currentUser = null;
-      }
-      
-      this.updateUI();
-      this.notifyAuthListeners();
+    this.authPromise = new Promise((resolve) => {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          // 獲取用戶詳細資料
+          const userDoc = await this.getUserProfile(user.uid);
+          this.currentUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            ...userDoc
+          };
+        } else {
+          this.currentUser = null;
+        }
+        
+        if (!this.authReady) {
+          this.authReady = true;
+          resolve(this.currentUser);
+        }
+        
+        this.updateUI();
+        this.notifyAuthListeners();
+      });
     });
   }
 
@@ -112,6 +121,14 @@ class AuthManager {
   // 獲取當前用戶
   getCurrentUser() {
     return this.currentUser;
+  }
+
+  // 等待認證狀態初始化完成
+  async waitForAuth() {
+    if (this.authReady) {
+      return this.currentUser;
+    }
+    return await this.authPromise;
   }
 
   // 添加認證狀態監聽器
