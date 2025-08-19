@@ -400,6 +400,7 @@
         import { 
             validateImageFiles, 
             createImagePreview, 
+            compressImages,
             showNotification, 
             getUrlParams 
         } from './js/utils.js';
@@ -578,16 +579,28 @@
                     return;
                 }
 
-                for (const file of files) {
-                    try {
-                        const previewUrl = await createImagePreview(file);
-                        this.selectedImages.push(file);
-                        
-                        const previewItem = this.createImagePreviewElement(previewUrl, this.selectedImages.length - 1);
-                        document.getElementById('imagePreview').appendChild(previewItem);
-                    } catch (error) {
-                        console.error('創建圖片預覽失敗:', error);
+                try {
+                    showNotification('正在壓縮圖片...', 'info');
+                    
+                    // 壓縮圖片
+                    const compressedFiles = await compressImages(files, 1200, 800, 0.8);
+                    
+                    for (const file of compressedFiles) {
+                        try {
+                            const previewUrl = await createImagePreview(file);
+                            this.selectedImages.push(file);
+                            
+                            const previewItem = this.createImagePreviewElement(previewUrl, this.selectedImages.length - 1);
+                            document.getElementById('imagePreview').appendChild(previewItem);
+                        } catch (error) {
+                            console.error('創建圖片預覽失敗:', error);
+                        }
                     }
+                    
+                    showNotification('圖片壓縮完成', 'success');
+                } catch (error) {
+                    console.error('圖片處理失敗:', error);
+                    showNotification('圖片處理失敗', 'error');
                 }
             }
 
@@ -694,13 +707,20 @@
             async createVehicle(formData) {
                 this.showLoading('上傳車輛資料中...');
                 
+                console.log('準備發佈車輛:', formData);
+                console.log('選擇的圖片數量:', this.selectedImages.length);
+                
                 const result = await dbManager.addVehicle(formData, this.selectedImages);
+                console.log('發佈結果:', result);
+                
                 if (result.success) {
                     showNotification('車輛新增成功！', 'success');
+                    console.log('車輛ID:', result.vehicleId);
                     setTimeout(() => {
                         window.location.href = 'my-vehicles.html';
                     }, 1000);
                 } else {
+                    console.error('車輛發佈失敗:', result.error);
                     showNotification(result.error, 'error');
                 }
             }
