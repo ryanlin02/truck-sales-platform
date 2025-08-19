@@ -28,6 +28,7 @@ class DatabaseManager {
   // 獲取所有可售車輛
   async getAvailableVehicles() {
     try {
+      console.log('開始載入可售車輛列表...');
       const q = query(
         this.vehiclesCollection,
         where('status', '==', VEHICLE_STATUS.AVAILABLE),
@@ -43,10 +44,13 @@ class DatabaseManager {
         });
       });
       
+      console.log('成功載入車輛列表，共', vehicles.length, '輛車');
       return { success: true, vehicles };
     } catch (error) {
-      console.error('獲取車輛列表失敗:', error);
-      return { success: false, error: '無法載入車輛資料' };
+      console.error('獲取車輛列表失敗 - 詳細錯誤:', error);
+      console.error('錯誤代碼:', error.code);
+      console.error('錯誤訊息:', error.message);
+      return { success: false, error: `無法載入車輛資料: ${error.message}` };
     }
   }
 
@@ -140,6 +144,7 @@ class DatabaseManager {
   // 獲取用戶的車輛
   async getUserVehicles(userId) {
     try {
+      console.log('開始載入用戶車輛，用戶ID:', userId);
       const q = query(
         this.vehiclesCollection,
         where('ownerId', '==', userId),
@@ -155,24 +160,34 @@ class DatabaseManager {
         });
       });
       
+      console.log('成功載入用戶車輛，共', vehicles.length, '輛車');
       return { success: true, vehicles };
     } catch (error) {
-      console.error('獲取用戶車輛失敗:', error);
-      return { success: false, error: '無法載入車輛資料' };
+      console.error('獲取用戶車輛失敗 - 詳細錯誤:', error);
+      console.error('錯誤代碼:', error.code);
+      console.error('錯誤訊息:', error.message);
+      return { success: false, error: `無法載入車輛資料: ${error.message}` };
     }
   }
 
   // 新增車輛
   async addVehicle(vehicleData, imageFiles) {
     try {
+      console.log('開始新增車輛流程:', vehicleData);
+      
       // 上傳圖片
       const imageUrls = [];
       if (imageFiles && imageFiles.length > 0) {
+        console.log('開始上傳圖片，共', imageFiles.length, '張');
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
+          console.log(`上傳第 ${i + 1} 張圖片:`, file.name, '大小:', file.size);
           const imageUrl = await this.uploadImage(file, `vehicles/${Date.now()}_${i}`);
           if (imageUrl) {
             imageUrls.push(imageUrl);
+            console.log(`第 ${i + 1} 張圖片上傳成功:`, imageUrl);
+          } else {
+            console.error(`第 ${i + 1} 張圖片上傳失敗`);
           }
         }
       }
@@ -186,8 +201,12 @@ class DatabaseManager {
         updatedAt: new Date()
       };
 
+      console.log('準備寫入資料庫的車輛資料:', vehicleDoc);
+
       // 新增到資料庫
       const docRef = await addDoc(this.vehiclesCollection, vehicleDoc);
+      
+      console.log('車輛成功寫入資料庫，ID:', docRef.id);
       
       return { 
         success: true, 
@@ -195,8 +214,10 @@ class DatabaseManager {
         message: '車輛新增成功' 
       };
     } catch (error) {
-      console.error('新增車輛失敗:', error);
-      return { success: false, error: '新增車輛失敗' };
+      console.error('新增車輛失敗 - 詳細錯誤:', error);
+      console.error('錯誤代碼:', error.code);
+      console.error('錯誤訊息:', error.message);
+      return { success: false, error: `新增車輛失敗: ${error.message}` };
     }
   }
 
