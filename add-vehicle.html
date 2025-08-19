@@ -414,9 +414,12 @@
             }
 
             async init() {
-                this.checkAuthAndMode();
                 this.initBrandOptions();
                 this.initEventListeners();
+                
+                // 等待認證狀態初始化完成
+                await authManager.waitForAuth();
+                this.checkAuthAndMode();
                 
                 // 監聽認證狀態變化
                 authManager.addAuthListener(this.handleAuthStateChange.bind(this));
@@ -432,12 +435,16 @@
                 }
 
                 const currentUser = authManager.getCurrentUser();
+                console.log('Add Vehicle - 當前用戶狀態:', currentUser); // 調試用
+                
                 if (currentUser) {
                     document.getElementById('vehicleForm').classList.remove('hidden');
+                    document.getElementById('authRequired').classList.add('hidden');
                     if (this.isEditMode) {
                         this.loadVehicleForEdit();
                     }
                 } else {
+                    document.getElementById('vehicleForm').classList.add('hidden');
                     document.getElementById('authRequired').classList.remove('hidden');
                 }
             }
@@ -532,7 +539,11 @@
             }
 
             handleAuthStateChange(user) {
-                if (!user) {
+                console.log('Add Vehicle - 認證狀態變化:', user); // 調試用
+                if (user) {
+                    document.getElementById('vehicleForm').classList.remove('hidden');
+                    document.getElementById('authRequired').classList.add('hidden');
+                } else {
                     document.getElementById('vehicleForm').classList.add('hidden');
                     document.getElementById('authRequired').classList.remove('hidden');
                 }
